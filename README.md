@@ -1,2 +1,2 @@
-# ML_demo
+# DemoML
 Demos of Machine Learning Algorithm
