@@ -1,3 +1,5 @@
+# Xiaoqing Tang 
+# 25/04/2020
 import numpy as np
 import matplotlib.pyplot as plt
 
