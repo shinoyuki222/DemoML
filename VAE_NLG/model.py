@@ -6,7 +6,9 @@ import torch.nn.init as init
 import numpy as np
 
 # from highway import Highway
-from const import BOS
+from const import *
+
+igore_idx = len(WORD)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -123,9 +125,9 @@ class VAE(nn.Module):
         return mu + sigma * std_z
 
 
-    def generate(self, max_len):
+    def generate_poetry(self, max_len=20):
         size = (1, self.latent_dim)
-        
+
         z = self.z
         next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
@@ -136,7 +138,7 @@ class VAE(nn.Module):
             encode = self.lookup_table(input_sent)
             output, hidden = self.decode(encode, z)
             prob = output.squeeze().data
-            score, next_word = torch.max(prob[3:],dim=-1)
+            score, next_word = torch.max(prob[igore_idx:],dim=-1)
 
 
             if index % 5 == 0:
@@ -144,5 +146,32 @@ class VAE(nn.Module):
                 portry += "，"
             else:
                 portry += self.idx2word[next_word.item()]
+
+        return portry[:-1] + "。"
+
+    def generate_songci(self, idx2word, max_len=20):
+        size = (1, self.latent_dim)
+
+        z = self.z
+        next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
+        
+        portry = ""
+        # hidden = self.decode.init_hidden(1)
+        length = 0
+        while True:
+            input_sent = next_word.expand(1,1).to(device)
+            encode = self.lookup_table(input_sent)
+            output, hidden = self.decode(encode, z)
+            prob = output.squeeze().data
+
+            score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
+            word = idx2word[next_word.item()+ igore_idx-1]
+            
+            if word == WORD[EOS] or length == 19:
+                portry += "。"
+                break
+            else:
+                portry += word
+                length += 1
 
         return portry[:-1] + "。"

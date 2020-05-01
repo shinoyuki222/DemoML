@@ -126,6 +126,8 @@ class Corpus(object):
         torch.save(data, self.save_data)
         print('word length - [{}]'.format(len(self.dict)))
 
+
+
 class DataLoader(object):
     def __init__(self, src_sents, max_len=30, batch_size=16):
         self.n_sents = len(src_sents)
@@ -173,6 +175,7 @@ class DataLoader(object):
         padVar = torch.LongTensor(padList)
         return padVar, mask, max_target_len
 
+
     def batch2TrainData(self,sent_batch):
         enc, lengths = self.EncoderVar(sent_batch)
         dec = self.DecoderVar(sent_batch)
@@ -185,7 +188,11 @@ class DataLoader(object):
             idx_s = i*self.batch_size
             idx_e = (i+1)*self.batch_size
 
-        self.ds_loader = [self.batch2TrainData(sents[idx_s:idx_e])]
+            sent_batch = sorted(sents[idx_s:idx_e],key = lambda i:len(i),reverse=True)
+            # print(sent_batch)
+            # for i in sent_batch:
+            #     print(len(i))
+            self.ds_loader = [self.batch2TrainData(sent_batch)]
         return self.ds_loader
 
 
@@ -193,7 +200,7 @@ class DataLoader(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='VAE NLG')
-    parser.add_argument('--corpus-data', type=str, default='data/poetry',
+    parser.add_argument('--corpus-data', type=str, default='data/songci',
                         help='path to corpus data')
     parser.add_argument('--save-data', type=str, default='data/vae_nlg.pt',
                         help='path to save processed data')
@@ -204,6 +211,9 @@ if __name__ == '__main__':
 
     data = torch.load("data/vae_nlg.pt")
     dl = DataLoader(data['train'])
+
+    # a = data['dict']['src']['，']
+    # print(a)
 
 
 

@@ -118,7 +118,7 @@ try:
         vae.eval()
         for _ in range(10):
             with torch.no_grad():
-                portry = vae.generate(20)
+                portry = vae.generate_songci(args.idx2word)
                 print("portry generation - [{}]".format(portry, encoding = 'utf-8',ascii=True))
                 print('-' * 90)
 
