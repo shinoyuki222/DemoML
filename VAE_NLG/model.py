@@ -63,7 +63,7 @@ class Decoder(nn.Module):
 
         rnn_out, hidden = self.rnn(input_dec)
         rnn_out = F.dropout(rnn_out, p=self.dropout)
-        out = self.lr(rnn_out.contiguous().view(-1, self.hidden_size))
+        out = self.lr(rnn_out.view(-1, self.hidden_size))
 
         return F.log_softmax(out, dim=-1), hidden
 
@@ -81,7 +81,7 @@ class VAE(nn.Module):
             self.__setattr__(k, v)
 
         self.lookup_table = nn.Embedding(self.vocab_size, self.embed_dim)
-        self.lookup_table.weight.data.copy_(torch.from_numpy(self.pre_w2v))
+        self.lookup_table.weight.data = torch.Tensor(self.pre_w2v)
 
         # self.hw = Highway(self.hw_layers, self.hw_hsz, F.relu)
         self.encode = Encoder(self.embed_dim,
@@ -125,11 +125,7 @@ class VAE(nn.Module):
 
     def generate(self, max_len):
         size = (1, self.latent_dim)
-
-        # weight = next(self.parameters()).data
-        # z = Variable(weight.new(*size), volatile=True)
-        # z.data.copy_(torch.from_numpy(np.random.normal(size=size)))
-
+        
         z = self.z
         next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
