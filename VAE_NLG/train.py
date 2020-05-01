@@ -91,7 +91,6 @@ def train():
 
         target, latent_loss, enc_hidden, dec_hidden = vae(enc_input, dec_input, lengths)
         loss = criterion(target, opt.view(-1)) + latent_loss
-        print(loss)
 
         loss.backward()
         optimizer.clip_grad_norm()
@@ -119,9 +118,10 @@ try:
         print('-' * 90)
         vae.eval()
         for _ in range(10):
-            portry = vae.generate(20)
-            print("portry generation - [{}]".format(portry, encoding = 'utf-8',ascii=True))
-            print('-' * 90)
+            with torch.no_grad():
+                portry = vae.generate(20)
+                print("portry generation - [{}]".format(portry, encoding = 'utf-8',ascii=True))
+                print('-' * 90)
 
 except KeyboardInterrupt:
     print("-" * 90)

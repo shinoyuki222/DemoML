@@ -93,7 +93,7 @@ class VAE(nn.Module):
         self.decode = Decoder(self.embed_dim, self.latent_dim,
                               self.dec_hsz, self.dec_layers, self.dropout, self.vocab_size)
 
-        self._init_weight()
+
 
     def forward(self, enc_input, dec_input, input_lengths, enc_hidden=None, dec_hidden=None):
         enc_ = self.lookup_table(enc_input)
@@ -101,10 +101,10 @@ class VAE(nn.Module):
 
         enc_output, enc_hidden = self.encode(enc_, input_lengths)
         # mu = self._enc_mu(enc_output)
-        z = self._gaussian(enc_output)
+        self.z = self._gaussian(enc_output)
 
         dec_ = self.lookup_table(dec_input)
-        dec, dec_hidden = self.decode(dec_, z)
+        dec, dec_hidden = self.decode(dec_, self.z)
 
         return dec, self.latent_loss, enc_hidden, dec_hidden
 
@@ -118,25 +118,19 @@ class VAE(nn.Module):
         sigma = torch.exp(.5 * self._enc_log_sigma(enc_output))
         self.latent_loss = latent_loss(mu, sigma)
 
-        weight = next(self.parameters()).data
-        std_z = Variable(weight.new(*sigma.size()), requires_grad=False)
-        std_z.data.copy_(torch.from_numpy(
-            np.random.normal(size=sigma.size())))
-
+        std_z = torch.normal(0,1,size=sigma.size())
+ 
         return mu + sigma * std_z
 
-    def _init_weight(self):
-        init.xavier_normal(self._enc_mu.weight)
-        init.xavier_normal(self._enc_log_sigma.weight)
 
     def generate(self, max_len):
         size = (1, self.latent_dim)
 
-        weight = next(self.parameters()).data
-        z = Variable(weight.new(*size), volatile=True)
-        z.data.copy_(torch.from_numpy(
-            np.random.normal(size=size)))
+        # weight = next(self.parameters()).data
+        # z = Variable(weight.new(*size), volatile=True)
+        # z.data.copy_(torch.from_numpy(np.random.normal(size=size)))
 
+        z = self.z
         next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
         portry = ""
@@ -145,9 +139,8 @@ class VAE(nn.Module):
             input_sent = next_word.expand(1,1).to(device)
             encode = self.lookup_table(input_sent)
             output, hidden = self.decode(encode, z)
-
             prob = output.squeeze().data
-            score, next_word = torch.max(prob,dim=-1)
+            score, next_word = torch.max(prob[3:],dim=-1)
 
 
             if index % 5 == 0:
