@@ -156,10 +156,14 @@ class DataLoader(object):
         return padVar, lengths
 
     def DecoderVar(self, sents_batch):
-        padList = zeroPadding(sents_batch)
-        bos_tag = torch.LongTensor([[BOS for _ in range(self.batch_size)]])
-        pad_0 = torch.LongTensor(padList)
-        padVar = torch.cat((bos_tag,pad_0),0)
+        dec_batch = []
+        for indexes in sents_batch:
+            dec_batch.append([BOS] + indexes)
+        padList = zeroPadding(dec_batch)
+        padVar = torch.LongTensor(padList)
+        # bos_tag = torch.LongTensor([[BOS for _ in range(self.batch_size)]])
+        # pad_0 = torch.LongTensor(padList)
+        # padVar = torch.cat((bos_tag,pad_0),0)
         return padVar
 
     def OutputVar(self, sents_batch):
@@ -184,15 +188,16 @@ class DataLoader(object):
 
     def gen_data(self):
         sents = copy.deepcopy(self.enc_sents)
+        batched_var = []
         for i in range(self.n_batch):
             idx_s = i*self.batch_size
             idx_e = (i+1)*self.batch_size
 
-            sent_batch = sorted(sents[idx_s:idx_e],key = lambda i:len(i),reverse=True)
+            sent_batch =  sorted(sents[idx_s:idx_e],key = lambda i:len(i),reverse=True)
             # print(sent_batch)
             # for i in sent_batch:
             #     print(len(i))
-            self.ds_loader = [self.batch2TrainData(sent_batch)]
+            self.ds_loader.append(self.batch2TrainData(sent_batch))
         return self.ds_loader
 
 

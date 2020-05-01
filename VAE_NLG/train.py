@@ -61,13 +61,14 @@ build model
 '''
 import model
 from optim import ScheduledOptim
-
+from metric import SetCriterion
 vae = model.VAE(args)
 if use_cuda:
     vae = vae.cuda()
 
 # criterion = torch.nn.CrossEntropyLoss()
-criterion = torch.nn.NLLLoss()
+# criterion = torch.nn.NLLLoss()
+criterion = SetCriterion(data['dict']['src'],label_ignore=['。','，','、','</s>'], ignore_index=0)
 
 optimizer = ScheduledOptim(
     torch.optim.Adam(vae.parameters(), betas=(0.9, 0.98), eps=1e-09),

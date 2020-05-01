@@ -13,6 +13,8 @@ igore_idx = len(WORD)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+
+
 class Encoder(nn.Module):
     def __init__(self, embed_dim, hidden_size, num_layers, dropout):
         super().__init__()
@@ -149,7 +151,7 @@ class VAE(nn.Module):
 
         return portry[:-1] + "。"
 
-    def generate_songci(self, idx2word, max_len=20):
+    def generate_songci(self, idx2word, max_len=30):
         size = (1, self.latent_dim)
 
         z = self.z
@@ -158,6 +160,8 @@ class VAE(nn.Module):
         portry = ""
         # hidden = self.decode.init_hidden(1)
         length = 0
+
+
         while True:
             input_sent = next_word.expand(1,1).to(device)
             encode = self.lookup_table(input_sent)
@@ -166,8 +170,37 @@ class VAE(nn.Module):
 
             score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
             word = idx2word[next_word.item()+ igore_idx-1]
-            
-            if word == WORD[EOS] or length == 19:
+
+            if word == WORD[EOS] or length == max_len-1:
+                portry += "。"
+                break
+            else:
+                portry += word
+                length += 1
+
+        return portry[:-1] + "。"
+
+    def generate_songci(self, idx2word, max_len=30):
+        size = (1, self.latent_dim)
+
+        z = self.z
+        next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
+        
+        portry = ""
+        # hidden = self.decode.init_hidden(1)
+        length = 0
+
+
+        while True:
+            input_sent = next_word.expand(1,1).to(device)
+            encode = self.lookup_table(input_sent)
+            output, hidden = self.decode(encode, z)
+            prob = output.squeeze().data
+
+            score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
+            word = idx2word[next_word.item()+ igore_idx-1]
+
+            if word == WORD[EOS] or length == max_len-1:
                 portry += "。"
                 break
             else:
