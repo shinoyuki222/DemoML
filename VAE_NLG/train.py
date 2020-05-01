@@ -44,16 +44,16 @@ if use_cuda:
 '''
 load data
 '''
-from data_loader import DataLoader
+from dataloader import DataLoader
 
 data = torch.load(args.data)
-args.max_len = data["max_word_len"]
+# args.max_len = data["max_word_len"]
+args.max_len = 30
 args.vocab_size = data['dict']['src_size']
 args.pre_w2v = data['pre_w2v']
 args.idx2word = {v: k for k, v in data['dict']['src'].items()}
 
-dl = DataLoader(data['train'],
-                           args.max_len, args.batch_size, cuda=use_cuda)
+dl = DataLoader(data['train'],args.max_len, args.batch_size)
 training_data = dl.ds_loader
 
 '''
@@ -86,9 +86,8 @@ train_loss = []
 def train():
     vae.train()
     total_loss = 0.
-    for enc_input, lengths, dec_input, opt in tqdm(training_data, mininterval=1, desc='Generator Train Processing', leave=False):
+    for enc_input, lengths, dec_input, opt, mask in tqdm(training_data, mininterval=1, desc='Generator Train Processing', leave=False):
         optimizer.zero_grad()
-
         target, latent_loss, enc_hidden, dec_hidden = vae(enc_input, dec_input, lengths)
         loss = criterion(target, opt.view(-1)) + latent_loss
 
