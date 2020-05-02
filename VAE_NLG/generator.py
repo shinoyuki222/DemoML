@@ -15,6 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def generate_songci(model, args, max_len=30):
+
     z = torch.normal(0,1,size=(1,args.latent_dim))
     next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
     

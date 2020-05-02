@@ -2,7 +2,6 @@ import argparse
 import time
 
 import torch
-from torch.autograd import Variable
 
 
 parser = argparse.ArgumentParser(description='VAE-NLG')
@@ -67,7 +66,7 @@ vae = model.VAE(args)
 if use_cuda:
     vae = vae.cuda()
 
-criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、','</s>',' '])
+criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、',' '])
 
 optimizer = ScheduledOptim(
     torch.optim.Adam(vae.parameters(), betas=(0.9, 0.98), eps=1e-09),
@@ -143,7 +142,7 @@ try:
         for _ in range(10):
             with torch.no_grad():
                 # portry = vae.generate_songci(args.idx2word)
-                poetry = generate_songci(vae,args)
+                poetry = generate_songci(vae, args)
                 print("poetry generation - [{}]".format(poetry, encoding = 'utf-8',ascii=True))
                 print('-' * 90)
     # save_inference(vae)

@@ -35,7 +35,7 @@ def SetCriterion(label_dict=None, label_ignore=None, weight = None,size_average=
         if label_dict:
             for label_i in label_ignore:
                 if label_i in label_dict:
-                    weight[label_dict[label_i]] = 0.01
+                    weight[label_dict[label_i]] = 0.05
                     print("weight for `{}` set to {}".format(label_i,weight[label_dict[label_i]]))
                 else:
                     print("Cannot set weight for unknown word `{}`".format(label_i))
