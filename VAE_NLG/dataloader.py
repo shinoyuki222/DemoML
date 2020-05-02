@@ -156,7 +156,7 @@ class DataLoader(object):
         self.batch_size = batch_size
 
         self.n_batch = self.n_sents//self.batch_size+1
-        # self.n_batch = 2
+        self.n_batch = 2
         self.max_len = max_len
         self.enc_sents = src_sents
         self.ds_loader = []

@@ -97,18 +97,16 @@ class VAE(nn.Module):
         self.decode = Decoder(self.embed_dim, self.latent_dim,
                               self.dec_hsz, self.dec_layers, self.dropout, self.vocab_size)
 
-
-
     def forward(self, enc_input, dec_input, input_lengths, enc_hidden=None, dec_hidden=None):
         enc_ = self.lookup_table(enc_input)
         # enc_ = F.dropout(self.hw(enc_), p=self.dropout)
 
         enc_output, enc_hidden = self.encode(enc_, input_lengths)
         # mu = self._enc_mu(enc_output)
-        self.z = self._gaussian(enc_output)
+        z = self._gaussian(enc_output)
 
         dec_ = self.lookup_table(dec_input)
-        dec, dec_hidden = self.decode(dec_, self.z)
+        dec, dec_hidden = self.decode(dec_, z)
 
         return dec, self.latent_loss, enc_hidden, dec_hidden
 
@@ -127,86 +125,86 @@ class VAE(nn.Module):
         return mu + sigma * std_z
 
 
-    def generate_poetry(self, max_len=20):
-        size = (1, self.latent_dim)
+    # def generate_poetry(self, max_len=20):
+    #     size = (1, self.latent_dim)
 
-        z = self.z
-        next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
+    #     z = torch.normal(0,1,size=size)
+    #     next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
-        portry = ""
-        # hidden = self.decode.init_hidden(1)
-        for index in range(1, max_len + 1):
-            input_sent = next_word.expand(1,1).to(device)
-            encode = self.lookup_table(input_sent)
-            output, hidden = self.decode(encode, z)
-            prob = output.squeeze().data
-            score, next_word = torch.max(prob[igore_idx:],dim=-1)
+    #     portry = ""
+    #     # hidden = self.decode.init_hidden(1)
+    #     for index in range(1, max_len + 1):
+    #         input_sent = next_word.expand(1,1).to(device)
+    #         encode = self.lookup_table(input_sent)
+    #         output, hidden = self.decode(encode, z)
+    #         prob = output.squeeze().data
+    #         score, next_word = torch.max(prob[igore_idx:],dim=-1)
 
 
-            if index % 5 == 0:
-                portry += self.idx2word[next_word.item()]
-                portry += "，"
-            else:
-                portry += self.idx2word[next_word.item()]
+    #         if index % 5 == 0:
+    #             portry += self.idx2word[next_word.item()]
+    #             portry += "，"
+    #         else:
+    #             portry += self.idx2word[next_word.item()]
 
-        return portry[:-1] + "。"
+    #     return portry[:-1] + "。"
 
-    def generate_songci(self, idx2word, max_len=30):
-        size = (1, self.latent_dim)
+    # def generate_songci(self, idx2word, max_len=30):
+    #     size = (1, self.latent_dim)
 
-        z = self.z
-        next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
+    #     z = torch.normal(0,1,size=size)
+    #     next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
-        portry = ""
-        # hidden = self.decode.init_hidden(1)
-        length = 0
+    #     portry = ""
+    #     # hidden = self.decode.init_hidden(1)
+    #     length = 0
 
-        hidden = None
+    #     hidden = None
 
-        while True:
-            input_sent = next_word.expand(1,1).to(device)
-            encode = self.lookup_table(input_sent)
-            output, hidden = self.decode(encode, z, hidden)
-            prob = output.squeeze().data
+    #     while True:
+    #         input_sent = next_word.expand(1,1).to(device)
+    #         encode = self.lookup_table(input_sent)
+    #         output, hidden = self.decode(encode, z, hidden)
+    #         prob = output.squeeze().data
 
-            score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
-            word = idx2word[next_word.item()+ igore_idx-1]
+    #         score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
+    #         word = idx2word[next_word.item()+ igore_idx-1]
 
-            if word == WORD[EOS] or length == max_len-1:
-                portry += "。"
-                break
-            else:
-                portry += word
-                length += 1
+    #         if word == WORD[EOS] or length == max_len-1:
+    #             portry += "。"
+    #             break
+    #         else:
+    #             portry += word
+    #             length += 1
 
-        return portry[:-1] + "。"
+    #     return portry[:-1] + "。"
 
-    def generate_songci(self, idx2word, max_len=30):
-        size = (1, self.latent_dim)
+    # def generate_songci(self, idx2word, max_len=30):
+    #     size = (1, self.latent_dim)
 
-        z = self.z
-        next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
+    #     z = torch.normal(0,1,size=size)
+    #     next_word = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
         
-        portry = ""
-        # hidden = self.decode.init_hidden(1)
-        length = 0
+    #     portry = ""
+    #     # hidden = self.decode.init_hidden(1)
+    #     length = 0
 
-        hidden = None
+    #     hidden = None
 
-        while True:
-            input_sent = next_word.expand(1,1).to(device)
-            encode = self.lookup_table(input_sent)
-            output, hidden = self.decode(encode, z, hidden)
-            prob = output.squeeze().data
+    #     while True:
+    #         input_sent = next_word.expand(1,1).to(device)
+    #         encode = self.lookup_table(input_sent)
+    #         output, hidden = self.decode(encode, z, hidden)
+    #         prob = output.squeeze().data
 
-            score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
-            word = idx2word[next_word.item()+ igore_idx-1]
+    #         score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
+    #         word = idx2word[next_word.item()+ igore_idx-1]
 
-            if word == WORD[EOS] or length == max_len-1:
-                portry += "。"
-                break
-            else:
-                portry += word
-                length += 1
+    #         if word == WORD[EOS] or length == max_len-1:
+    #             portry += "。"
+    #             break
+    #         else:
+    #             portry += word
+    #             length += 1
 
-        return portry[:-1] + "。"
+    #     return portry[:-1] + "。"

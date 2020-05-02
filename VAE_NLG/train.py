@@ -4,6 +4,7 @@ import time
 import torch
 from torch.autograd import Variable
 
+
 parser = argparse.ArgumentParser(description='VAE-NLG')
 parser.add_argument('--epochs', type=int, default=100,
                     help='number of epochs for train')
@@ -66,9 +67,6 @@ vae = model.VAE(args)
 if use_cuda:
     vae = vae.cuda()
 
-# criterion = torch.nn.CrossEntropyLoss()
-# criterion = torch.nn.NLLLoss()
-# ignore_index = data['dict']['src']['、']
 criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、','</s>',' '])
 
 optimizer = ScheduledOptim(
@@ -80,6 +78,7 @@ train model
 '''
 import time
 from tqdm import tqdm
+
 
 def train():
     vae.train()
@@ -101,6 +100,32 @@ def train():
 '''
 save model
 '''
+import os
+from generator import generate_songci
+def save(vae_model,save_dir = 'model'):
+    directory = os.path.join(save_dir)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    torch.save({
+        'model': vae_model.state_dict(),
+        'model_opt': optimizer.optimizer.state_dict()
+    }, os.path.join(directory, '{}.tar'.format("vae_nlg_full_model")))
+
+def save_inference(vae_model,save_dir = 'model'):
+    directory = os.path.join(save_dir)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # print(vae_model.state_dict())
+    torch.save({
+        'encoder':vae_model.encode.state_dict(),
+        'embedding':vae_model.lookup_table.state_dict()
+        # 'model_opt': optimizer.state_dict()
+    }, os.path.join(directory, '{}.tar'.format("vae_nlg_inference_model")))
+
+
+
 best_acc = None
 total_start_time = time.time()
 
@@ -110,17 +135,41 @@ try:
         epoch_start_time = time.time()
         loss = train()
 
+        save(vae)
         print('| start of epoch {:3d} | time: {:2.2f}s | loss {:5.6f}'.format(
             epoch, time.time() - epoch_start_time, loss))
         print('-' * 90)
         vae.eval()
         for _ in range(10):
             with torch.no_grad():
-                portry = vae.generate_songci(args.idx2word)
-                print("portry generation - [{}]".format(portry, encoding = 'utf-8',ascii=True))
+                # portry = vae.generate_songci(args.idx2word)
+                poetry = generate_songci(vae,args)
+                print("poetry generation - [{}]".format(poetry, encoding = 'utf-8',ascii=True))
                 print('-' * 90)
+    # save_inference(vae)
 
 except KeyboardInterrupt:
     print("-" * 90)
     print("Exiting from training early | cost time: {:5.2f}min".format(
         (time.time() - total_start_time) / 60.0))
+
+'''
+load model
+
+'''
+
+
+save_dir = 'model'
+model_name = 'vae_nlg_full_model'
+directory = os.path.join(save_dir,model_name+'.tar')
+ckpt = torch.load(directory)
+vae_model = model.VAE(args)
+vae_model.load_state_dict(ckpt['model'])
+poetry = generate_songci(vae_model,args)
+print('loading model^')
+print("poetry generation - [{}]".format(poetry, encoding = 'utf-8',ascii=True))
+print('-' * 90)
+# generate_songci(vae_model,args.idx2word)
+
+
+
