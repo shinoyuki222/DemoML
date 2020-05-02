@@ -11,11 +11,35 @@ import copy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def is_chinese(w):
+    if (w >= '\u4e00' and w <= '\u9fa5'):
+        return 1
+    else:
+        return 0
+
+
 def unicodeToAscii(s):
     return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
     # return unicodedata.normalize('NFKD',s).encode('ascii','ignore')
+
+def split(sent):
+    return list(sent)
+
+def filter(s):
+    # if ' ' in s:
+    #     print(s)
+    return ''.join(c for c in s if is_chinese(c))
+    # s = split(s)
+    # for i,w in enumerate(s):
+    #     if not is_chinese(w):
+    #         s[i] = ' '
+    # return ''.join(s)
+
 def textprocess(s):
-    return unicodeToAscii(s)
+    s = unicodeToAscii(s)
+    s = filter(s)
+    return s
+
 
 def word2idx(sents, word2idx):
     return [[word2idx[w] if w in word2idx else UNK for w in s] for s in sents]
@@ -90,6 +114,7 @@ class Corpus(object):
         for line in lines:
             self.sents.append(textprocess(line))
         # self.sents = lines
+        # print(self.sents[:10])
         self.dict(self.sents)
 
     def load_w2v(self):
@@ -115,11 +140,8 @@ class Corpus(object):
     def save(self):
         data = {
             'pre_w2v': self.pre_w2v,
-            # 'max_word_len': self._max_len,
-            'dict': {
-                'src': self.dict.word2idx,
-                'src_size': len(self.dict),
-            },
+            'word2idx': self.dict.word2idx,
+            'vocab_size': len(self.dict),
             'train': word2idx(self.sents, self.dict.word2idx)
         }
 
@@ -134,7 +156,7 @@ class DataLoader(object):
         self.batch_size = batch_size
 
         self.n_batch = self.n_sents//self.batch_size+1
-        self.n_batch = 2
+        # self.n_batch = 2
         self.max_len = max_len
         self.enc_sents = src_sents
         self.ds_loader = []
@@ -161,9 +183,6 @@ class DataLoader(object):
             dec_batch.append([BOS] + indexes)
         padList = zeroPadding(dec_batch)
         padVar = torch.LongTensor(padList)
-        # bos_tag = torch.LongTensor([[BOS for _ in range(self.batch_size)]])
-        # pad_0 = torch.LongTensor(padList)
-        # padVar = torch.cat((bos_tag,pad_0),0)
         return padVar
 
     def OutputVar(self, sents_batch):
@@ -194,9 +213,6 @@ class DataLoader(object):
             idx_e = (i+1)*self.batch_size
 
             sent_batch =  sorted(sents[idx_s:idx_e],key = lambda i:len(i),reverse=True)
-            # print(sent_batch)
-            # for i in sent_batch:
-            #     print(len(i))
             self.ds_loader.append(self.batch2TrainData(sent_batch))
         return self.ds_loader
 
@@ -219,6 +235,9 @@ if __name__ == '__main__':
 
     # a = data['dict']['src']['，']
     # print(a)
+    # # print(is_chinese("。"))
+    # # print(is_chinese("，"))
+
 
 
 

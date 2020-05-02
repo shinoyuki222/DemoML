@@ -49,9 +49,9 @@ from dataloader import DataLoader
 data = torch.load(args.data)
 # args.max_len = data["max_word_len"]
 args.max_len = 30
-args.vocab_size = data['dict']['src_size']
+args.vocab_size = data['vocab_size']
 args.pre_w2v = data['pre_w2v']
-args.idx2word = {v: k for k, v in data['dict']['src'].items()}
+args.idx2word = {v: k for k, v in data['word2idx'].items()}
 
 dl = DataLoader(data['train'],args.max_len, args.batch_size)
 training_data = dl.ds_loader
@@ -60,15 +60,16 @@ training_data = dl.ds_loader
 build model
 '''
 import model
-from optim import ScheduledOptim
-from metric import SetCriterion
+from optim import ScheduledOptim, SetCriterion
+# from metric import SetCriterion
 vae = model.VAE(args)
 if use_cuda:
     vae = vae.cuda()
 
 # criterion = torch.nn.CrossEntropyLoss()
 # criterion = torch.nn.NLLLoss()
-criterion = SetCriterion(data['dict']['src'],label_ignore=['。','，','、','</s>'], ignore_index=0)
+# ignore_index = data['dict']['src']['、']
+criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、','</s>',' '])
 
 optimizer = ScheduledOptim(
     torch.optim.Adam(vae.parameters(), betas=(0.9, 0.98), eps=1e-09),
@@ -79,10 +80,6 @@ train model
 '''
 import time
 from tqdm import tqdm
-
-train_loss = []
-
-
 
 def train():
     vae.train()

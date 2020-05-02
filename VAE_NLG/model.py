@@ -161,11 +161,12 @@ class VAE(nn.Module):
         # hidden = self.decode.init_hidden(1)
         length = 0
 
+        hidden = None
 
         while True:
             input_sent = next_word.expand(1,1).to(device)
             encode = self.lookup_table(input_sent)
-            output, hidden = self.decode(encode, z)
+            output, hidden = self.decode(encode, z, hidden)
             prob = output.squeeze().data
 
             score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
@@ -190,11 +191,12 @@ class VAE(nn.Module):
         # hidden = self.decode.init_hidden(1)
         length = 0
 
+        hidden = None
 
         while True:
             input_sent = next_word.expand(1,1).to(device)
             encode = self.lookup_table(input_sent)
-            output, hidden = self.decode(encode, z)
+            output, hidden = self.decode(encode, z, hidden)
             prob = output.squeeze().data
 
             score, next_word = torch.max(prob[igore_idx-1:],dim=-1)
