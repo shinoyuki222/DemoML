@@ -100,7 +100,7 @@ def train():
 save model
 '''
 import os
-from generator import generate_songci
+from generator import generator_greedy
 def save(vae_model,save_dir = 'model'):
     directory = os.path.join(save_dir)
     if not os.path.exists(directory):
@@ -142,7 +142,7 @@ try:
         for _ in range(10):
             with torch.no_grad():
                 # portry = vae.generate_songci(args.idx2word)
-                poetry = generate_songci(vae, args)
+                poetry = generator_greedy(vae, args)
                 print("poetry generation - [{}]".format(poetry, encoding = 'utf-8',ascii=True))
                 print('-' * 90)
     # save_inference(vae)
@@ -164,7 +164,7 @@ directory = os.path.join(save_dir,model_name+'.tar')
 ckpt = torch.load(directory)
 vae_model = model.VAE(args)
 vae_model.load_state_dict(ckpt['model'])
-poetry = generate_songci_greedy(vae_model,args)
+poetry = generator_greedy(vae_model,args)
 print('loading model^')
 print("poetry generation - [{}]".format(poetry, encoding = 'utf-8',ascii=True))
 print('-' * 90)

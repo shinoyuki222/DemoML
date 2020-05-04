@@ -36,7 +36,7 @@ ckpt = torch.load(directory)
 vae_model = model.VAE(args)
 vae_model.load_state_dict(ckpt['model'])
 # poetry = generate_songci(vae_model,args, -1)
-scores, poetries = generator_beam(vae_model,args,2,5)
+scores, poetries = generator_beam(vae_model,args,10,10)
 for score,poetry in zip(scores,poetries):
 	print("poetry generation - [{0}] with score {1}".format(poetry, score,encoding = 'utf-8',ascii=True))
 print('-' * 90)

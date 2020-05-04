@@ -102,7 +102,7 @@ class VAE(nn.Module):
 
     def post_gaussian(self, enc_output):
         mu = self._enc_mu(enc_output)
-        sigma = torch.exp(.5 * self._enc_log_sigma(enc_output))
+        sigma = torch.exp(self._enc_log_sigma(enc_output))
         self.latent_loss = self._latent_loss(mu, sigma)
         std_z = torch.normal(0,1,size=sigma.size())
         return mu + sigma * std_z
