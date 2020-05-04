@@ -51,11 +51,12 @@ class Node(object):
         self.log_prob = log_prob
         self.length = length
 
-def generator_beam(model, args, beam_width, max_len=30):
+def generator_beam(model, args):
+    num_samples = args.num_samples
     scores = []
     poetries = []
-    for i in range(1):
-        score, poetry = beam_search(model, args, beam_width, max_len)
+    for i in range(num_samples):
+        score, poetry = beam_search(model, args)
         scores += score
         poetries += poetry
     return scores,poetries
@@ -63,7 +64,9 @@ def generator_beam(model, args, beam_width, max_len=30):
 def score(log_prob,length):
     return exp(log_prob/2)/(length)
 
-def beam_search(model, args, beam_width, max_len=30):
+def beam_search(model, args):
+    beam_width = args.beam_width
+    max_len = args.max_len
     z = torch.normal(0,1,size=(1,args.latent_dim))
     word_idx = torch.ones(1, 1, device=device, dtype=torch.long) * BOS
     poetry = []

@@ -18,6 +18,9 @@ parser.add_argument('--enc-hsz', type=int, default=128)
 parser.add_argument('--enc-layers', type=int, default=1)
 parser.add_argument('--dec-hsz', type=int, default=128)
 parser.add_argument('--dec-layers', type=int, default=2)
+parser.add_argument('--beam-width', type=int, default=5)
+parser.add_argument('--max-len', type=int, default=60)
+parser.add_argument('--num-samples', type=int, default=3)
 
 args = parser.parse_args()
 
@@ -36,7 +39,7 @@ ckpt = torch.load(directory)
 vae_model = model.VAE(args)
 vae_model.load_state_dict(ckpt['model'])
 # poetry = generate_songci(vae_model,args, -1)
-scores, poetries = generator_beam(vae_model,args,10,10)
+scores, poetries = generator_beam(vae_model,args)
 for score,poetry in zip(scores,poetries):
 	print("poetry generation - [{0}] with score {1}".format(poetry, score,encoding = 'utf-8',ascii=True))
 print('-' * 90)
