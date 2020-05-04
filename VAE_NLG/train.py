@@ -119,7 +119,7 @@ def save_inference(vae_model,save_dir = 'model'):
     # print(vae_model.state_dict())
     torch.save({
         'encoder':vae_model.encode.state_dict(),
-        'embedding':vae_model.lookup_table.state_dict()
+        'embedding':vae_model.embed.state_dict()
         # 'model_opt': optimizer.state_dict()
     }, os.path.join(directory, '{}.tar'.format("vae_nlg_inference_model")))
 

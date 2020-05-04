@@ -55,7 +55,6 @@ class Decoder(nn.Module):
                            num_layers, dropout=dropout, batch_first=False)
         self.lr = nn.Linear(hidden_size, vocab_size)
 
-        self._init_weight()
 
     def forward(self, input_dec, z, hidden=None):
         _len, bsz, _ = input_dec.size()
@@ -72,11 +71,6 @@ class Decoder(nn.Module):
         return F.log_softmax(out, dim=-1), hidden
 
 
-    def _init_weight(self, scope=.1):
-        self.lr.weight.data.uniform_(-scope, scope)
-        self.lr.bias.data.fill_(0)
-
-
 class VAE(nn.Module):
     def __init__(self, args):
         super().__init__()
@@ -84,10 +78,9 @@ class VAE(nn.Module):
         for k, v in args.__dict__.items():
             self.__setattr__(k, v)
 
-        self.lookup_table = nn.Embedding(self.vocab_size, self.embed_dim)
-        self.lookup_table.weight.data = torch.Tensor(self.pre_w2v)
+        self.embed = nn.Embedding(self.vocab_size, self.embed_dim)
+        self.embed.weight.data = torch.Tensor(self.pre_w2v)
 
-        # self.hw = Highway(self.hw_layers, self.hw_hsz, F.relu)
         self.encode = Encoder(self.embed_dim,
                               self.enc_hsz, self.enc_layers, self.dropout)
 
@@ -98,28 +91,24 @@ class VAE(nn.Module):
                               self.dec_hsz, self.dec_layers, self.dropout, self.vocab_size)
 
     def forward(self, enc_input, dec_input, input_lengths, enc_hidden=None, dec_hidden=None):
-        enc_ = self.lookup_table(enc_input)
-        # enc_ = F.dropout(self.hw(enc_), p=self.dropout)
-
+        enc_ = self.embed(enc_input)
         enc_output, enc_hidden = self.encode(enc_, input_lengths)
-        # mu = self._enc_mu(enc_output)
-        z = self._gaussian(enc_output)
+        z = self.post_gaussian(enc_output)
 
-        dec_ = self.lookup_table(dec_input)
+        dec_ = self.embed(dec_input)
         dec, dec_hidden = self.decode(dec_, z)
 
         return dec, self.latent_loss, enc_hidden, dec_hidden
 
-    def _gaussian(self, enc_output):
-        def latent_loss(mu, sigma):
-            pow_mu = mu * mu
-            pow_sigma = sigma * sigma
-            # return 0.5 * torch.mean(pow_mu + pow_sigma - torch.log(pow_sigma) - 1)
-            return 0.5 * torch.sum(pow_mu + pow_sigma - torch.log(pow_sigma) - 1, dim=-1).mean()
+    def post_gaussian(self, enc_output):
         mu = self._enc_mu(enc_output)
         sigma = torch.exp(.5 * self._enc_log_sigma(enc_output))
-        self.latent_loss = latent_loss(mu, sigma)
-
+        self.latent_loss = self._latent_loss(mu, sigma)
         std_z = torch.normal(0,1,size=sigma.size())
- 
         return mu + sigma * std_z
+
+    def _latent_loss(self,mu, sigma):
+        pow_mu = mu * mu
+        pow_sigma = sigma * sigma
+        # return 0.5 * torch.mean(pow_mu + pow_sigma - torch.log(pow_sigma) - 1)
+        return 0.5 * torch.sum(pow_mu + pow_sigma - torch.log(pow_sigma) - 1, dim=-1).mean()

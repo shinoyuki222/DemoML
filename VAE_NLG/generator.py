@@ -27,7 +27,7 @@ def generate_songci(model, args, max_len=30):
 
     while True:
         input_sent = next_word.expand(1,1).to(device)
-        encode = model.lookup_table(input_sent)
+        encode = model.embed(input_sent)
         output, hidden = model.decode(encode, z, hidden)
         prob = output.squeeze().data
 
