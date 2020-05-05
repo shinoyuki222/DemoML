@@ -1,7 +1,7 @@
 import argparse
 import time
-
 import torch
+from const import *
 
 
 parser = argparse.ArgumentParser(description='VAE-NLG')
@@ -66,7 +66,7 @@ vae = model.VAE(args)
 if use_cuda:
     vae = vae.cuda()
 
-criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、',' '])
+criterion = SetCriterion(data['word2idx'],label_ignore=['。','，','、',' '],ignore_index=PAD)
 
 optimizer = ScheduledOptim(
     torch.optim.Adam(vae.parameters(), betas=(0.9, 0.98), eps=1e-09),
