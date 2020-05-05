@@ -19,7 +19,7 @@ parser.add_argument('--enc-layers', type=int, default=1)
 parser.add_argument('--dec-hsz', type=int, default=128)
 parser.add_argument('--dec-layers', type=int, default=2)
 parser.add_argument('--beam-width', type=int, default=5)
-parser.add_argument('--max-len', type=int, default=60)
+parser.add_argument('--max-len', type=int, default=30)
 parser.add_argument('--num-sample-batch', type=int, default=3)
 
 args = parser.parse_args()
@@ -43,9 +43,14 @@ samples = generator_beam(vae_model,args)
 
 candidates = sorted(samples, key=lambda x:x[0], reverse=True)
 
+
 length = min(len(candidates), args.beam_width)
 
 for i in range(length):
+	print("poetry generation - [{0}] with score {1}".format(candidates[i][1], candidates[i][0],encoding = 'utf-8',ascii=True))
+print('-' * 90)
+
+for i in range(len(candidates)):
 	print("poetry generation - [{0}] with score {1}".format(candidates[i][1], candidates[i][0],encoding = 'utf-8',ascii=True))
 print('-' * 90)
 

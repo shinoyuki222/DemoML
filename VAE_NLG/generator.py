@@ -53,13 +53,15 @@ class Node(object):
         self.length = length
 
 def score(log_prob,length):
-    return exp(log_prob/2)/(length)
+    # return exp(0.5 * log_prob/length)
+    return exp(0.5 *log_prob/length)
 
 def generator_beam(model, args):
     num_sample_batch = args.num_sample_batch
     samples = []
     for i in range(num_sample_batch):
-        samples += beam_search(model, args)
+        beam_samples = beam_search(model, args)
+        samples += beam_samples
     return samples
 
 
