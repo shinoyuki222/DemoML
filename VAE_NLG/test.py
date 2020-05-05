@@ -44,7 +44,7 @@ samples = generator_beam(vae_model,args)
 candidates = sorted(samples, key=lambda x:x[0], reverse=True)
 
 
-length = min(len(candidates), args.beam_width)
+length = min(len(candidates), max(args.beam_width,args.num_sample_batch))
 
 for i in range(length):
 	print("poetry generation - [{0}] with score {1}".format(candidates[i][1], candidates[i][0],encoding = 'utf-8',ascii=True))
