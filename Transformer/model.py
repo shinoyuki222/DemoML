@@ -31,25 +31,53 @@ def positional_encoding(n_position, d_model):
 class ScaledDotProductAttention(nn.Module):
     def __init__(self):
         super(ScaledDotProductAttention, self).__init__()
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, Q, K, V, attn_mask):
-        # Q K V (batch_size,n_head,len,dim)
-        scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(d_k) # scores : [batch_size x n_heads x len_q(=len_k) x len_k(=len_q)]
-        scores.masked_fill_(attn_mask, -1e9) # Fills elements of self tensor with value where mask is one.
-        attn = nn.Softmax(dim=-1)(scores) # dim=-1 ensure scores match to len_k, attn with (batch_size, n_head, len_q, len_k)
-        context = torch.matmul(attn, V) #(batch_size, n_head, len_q, dim)
-        return context, attn
+        # Q K V (batch_size, len , d_model * n_heads)
+        # context = softmax(Q*K.T/sqrt(d_model)) * V
+        scores = torch.matmul(Q, K.transpose(-1,-2))/np.sqrt(d_k)
+        scores.masked_fill_(attn_mask, -1e9)
+        attn_weights = self.softmax(scores)
+        context = torch.matmul(attn_weights, V)
+        return context, attn_weights
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self):
+        super(MultiHeadAttention, self).__init__()
+        self.W_Q = nn.Linear(d_model, d_k * n_heads)
+        self.W_K = nn.Linear(d_model, d_k * n_heads)
+        self.W_V = nn.Linear(d_model, d_v * n_heads)
+
+    def forward(self, Q, K, V, attn_mask):
+        # batch first
+        # q: (batch_size, len_q, d_model)
+        # k: (batch_size, len_k, d_model)
+        # v: (batch_size, len_k, d_model)
+        residual, batch_size = Q, Q.size(0)
+        # (B, S, dk/d_q) -proj-> (B, S, D) -split-> (B, S, H, d_k(d_q)) -trans-> (B, H, S, d_k(d_q))
+        q_s = self.W_Q(Q).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # q_s: [batch_size x n_heads x len_q x d_k]
+        k_s = self.W_K(K).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # k_s: [batch_size x n_heads x len_k x d_k]
+        v_s = self.W_V(V).view(batch_size, -1, n_heads, d_v).transpose(1,2)  # v_s: [batch_size x n_heads x len_k x d_v]
+
+        attn_mask = attn_mask.unsqueeze(1).repeat(1, n_heads, 1, 1) # attn_mask : [batch_size x n_heads x len_q x len_k]
+
+        # context: [batch_size x n_heads x len_q x d_v], attn: [batch_size x n_heads x len_q(=len_k) x len_k(=len_q)]
+        context, attn = ScaledDotProductAttention()(q_s, k_s, v_s, attn_mask)
+        context = context.transpose(1, 2).contiguous().view(batch_size, -1, n_heads * d_v) # context: [batch_size x len_q x n_heads * d_v]
+        output = nn.Linear(n_heads * d_v, d_model)(context)
+        return nn.LayerNorm(d_model)(output + residual), attn # output: [batch_size x len_q x d_model]
 
 
 
-sentences = ['ich mochte ein bier P', 'S i want a beer', 'i want a beer E']
+sentences = ['我 喜欢 机器 学习', 'S i like machine learning', 'i like machine learning E']
 
 # Transformer Parameters
 # Padding Should be Zero index
-src_vocab = {'P' : 0, 'ich' : 1, 'mochte' : 2, 'ein' : 3, 'bier' : 4}
+src_vocab = {'P' : 0, '我' : 1, '喜欢' : 2, '机器' : 3, '学习' : 4}
 src_vocab_size = len(src_vocab)
 
-tgt_vocab = {'P' : 0, 'i' : 1, 'want' : 2, 'a' : 3, 'beer' : 4, 'S' : 5, 'E' : 6}
+tgt_vocab = {'P' : 0, 'i' : 1, 'like' : 2, 'machine' : 3, 'learning' : 4, 'S' : 5, 'E' : 6}
 number_dict = {i: w for i, w in enumerate(tgt_vocab)}
 tgt_vocab_size = len(tgt_vocab)
 
@@ -71,9 +99,12 @@ def make_batch(sentences):
 enc_inputs, dec_inputs, target_batch = make_batch(sentences)
 src_emb = nn.Embedding(src_vocab_size, d_model)
 pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
-enc_outputs = src_emb(enc_inputs) + pos_emb(torch.LongTensor([[1,2,3,4,0]]))
+enc_outputs = src_emb(enc_inputs) + pos_emb(torch.LongTensor([[1,2,3,0]]))
 enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
 # enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
 
 context, attn = ScaledDotProductAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
+
+# print(enc_outputs.size())
+# print(enc_outputs.view(-1, 8, 256).size())
 
