@@ -86,6 +86,18 @@ class PoswiseFFN(nn.Module):
         output = self.conv2(output).transpose(1, 2)
         return nn.LayerNorm(d_model)(output + residual)
 
+class EncoderLayer(nn.Module):
+    def __init__(self):
+        super(EncoderLayer, self).__init__()
+        self.enc_self_attn = MultiHeadAttention()
+        self.pos_ffn = PoswiseFeedForwardNet()
+
+    def forward(self, enc_inputs, enc_self_attn_mask):
+        # Q = K = V = enc_inputs
+        enc_outputs, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask)
+        # enc_outputs: (batch_size, len_q, d_model)
+        enc_outputs = self.pos_ffn(enc_outputs) 
+        return enc_outputs, attn
 
 sentences = ['我 喜欢 机器 学习', 'S i like machine learning', 'i like machine learning E']
 
