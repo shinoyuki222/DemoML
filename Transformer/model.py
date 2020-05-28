@@ -15,6 +15,11 @@ def get_attn_pad_mask(seq_q, seq_k):
     # eq(zero) is PAD token
     pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)  # (batch_size, 1, len_k/len_q) one is masking
     return pad_attn_mask.expand(batch_size, len_q, len_k)  # (batch_size, len_q, len_k)
+def get_attn_subsequent_mask(seq):
+    attn_shape = [seq.size(0), seq.size(1), seq.size(1)]
+    subsequent_mask = np.triu(np.ones(attn_shape), k=1)
+    subsequent_mask = torch.from_numpy(subsequent_mask).byte()
+    return subsequent_mask
 
 
 def positional_encoding(n_position, d_model):
@@ -90,7 +95,7 @@ class EncoderLayer(nn.Module):
     def __init__(self):
         super(EncoderLayer, self).__init__()
         self.enc_self_attn = MultiHeadAttention()
-        self.pos_ffn = PoswiseFeedForwardNet()
+        self.pos_ffn = PoswiseFFN()
 
     def forward(self, enc_inputs, enc_self_attn_mask):
         # Q = K = V = enc_inputs
@@ -99,47 +104,129 @@ class EncoderLayer(nn.Module):
         enc_outputs = self.pos_ffn(enc_outputs) 
         return enc_outputs, attn
 
-sentences = ['我 喜欢 机器 学习', 'S i like machine learning', 'i like machine learning E']
+class DecoderLayer(nn.Module):
+    def __init__(self):
+        super(DecoderLayer, self).__init__()
+        self.dec_self_attn = MultiHeadAttention()
+        self.dec_enc_attn = MultiHeadAttention()
+        self.pos_ffn = PoswiseFFN()
 
-# Transformer Parameters
-# Padding Should be Zero index
-src_vocab = {'P' : 0, '我' : 1, '喜欢' : 2, '机器' : 3, '学习' : 4}
-src_vocab_size = len(src_vocab)
+    def forward(self, dec_inputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask):
+        dec_outputs, dec_self_attn = self.dec_self_attn(dec_inputs, dec_inputs, dec_inputs, dec_self_attn_mask)
+        dec_outputs, dec_enc_attn = self.dec_enc_attn(dec_outputs, enc_outputs, enc_outputs, dec_enc_attn_mask)
+        dec_outputs = self.pos_ffn(dec_outputs)
+        return dec_outputs, dec_self_attn, dec_enc_attn
 
-tgt_vocab = {'P' : 0, 'i' : 1, 'like' : 2, 'machine' : 3, 'learning' : 4, 'S' : 5, 'E' : 6}
-number_dict = {i: w for i, w in enumerate(tgt_vocab)}
-tgt_vocab_size = len(tgt_vocab)
+class Encoder(nn.Module):
+    def __init__(self):
+        super(Encoder, self).__init__()
+        self.src_emb = nn.Embedding(src_vocab_size, d_model)
+        self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
+        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
 
-src_len = 5
-tgt_len = 5
+    def forward(self, enc_inputs): # enc_inputs : [batch_size x source_len]
+        enc_outputs = self.src_emb(enc_inputs) + self.pos_emb(enc_inputs)
+        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
+        enc_self_attns = []
+        for layer in self.layers:
+            enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
+            enc_self_attns.append(enc_self_attn)
+        return enc_outputs, enc_self_attns
 
-d_model = 512  # Embedding Size
-d_ff = 2048 # FeedForward dimension
-d_k = d_v = 64  # dimension of K(=Q), V
-n_layers = 6  # number of Encoder of Decoder Layer
-n_heads = 4  # number of heads in Multi-Head Attention
+class Decoder(nn.Module):
+    def __init__(self):
+        super(Decoder, self).__init__()
+        self.tgt_emb = nn.Embedding(tgt_vocab_size, d_model)
+        self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(tgt_len+1, d_model),freeze=True)
+        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
 
-def make_batch(sentences):
-    input_batch = [[src_vocab[n] for n in sentences[0].split()]]
-    output_batch = [[tgt_vocab[n] for n in sentences[1].split()]]
-    target_batch = [[tgt_vocab[n] for n in sentences[2].split()]]
-    return torch.LongTensor(input_batch), torch.LongTensor(output_batch), torch.LongTensor(target_batch)
+    def forward(self, dec_inputs, enc_inputs, enc_outputs): # dec_inputs : [batch_size x target_len]
+        dec_outputs = self.tgt_emb(dec_inputs) + self.pos_emb(dec_inputs)
+        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
+        dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
+        dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0)
 
-enc_inputs, dec_inputs, target_batch = make_batch(sentences)
-src_emb = nn.Embedding(src_vocab_size, d_model)
-pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
-enc_outputs = src_emb(enc_inputs) + pos_emb(torch.LongTensor([[1,2,3,0]]))
-enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
-# enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
+        dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs)
 
-context, attn = ScaledDotProductAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
+        dec_self_attns, dec_enc_attns = [], []
+        for layer in self.layers:
+            dec_outputs, dec_self_attn, dec_enc_attn = layer(dec_outputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask)
+            dec_self_attns.append(dec_self_attn)
+            dec_enc_attns.append(dec_enc_attn)
+        return dec_outputs, dec_self_attns, dec_enc_attns
 
-ans, attn = MultiHeadAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
+class Transformer(nn.Module):
+    def __init__(self):
+        super(Transformer, self).__init__()
+        self.encoder = Encoder()
+        self.decoder = Decoder()
+        self.projection = nn.Linear(d_model, tgt_vocab_size, bias=False)
+    def forward(self, enc_inputs, dec_inputs):
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
+        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
+        dec_logits = self.projection(dec_outputs) # dec_logits : [batch_size x src_vocab_size x tgt_vocab_size]
+        return dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
 
-print(context.size())
-print(context.transpose(1,2).is_contiguous())
-# print(context.transpose(1,2).reshape(1, -1, n_heads * d_v))
+if __name__ == '__main__':
 
-print(enc_outputs.size())
-# print(enc_outputs.view(-1, 8, 256).size())
+    sentences = ['我 喜欢 机器 学习', 'S i like machine learning', 'i like machine learning E']
+
+    # Transformer Parameters
+    # Padding Should be Zero index
+    src_vocab = {'P' : 0, '我' : 1, '喜欢' : 2, '机器' : 3, '学习' : 4}
+    src_vocab_size = len(src_vocab)
+
+    tgt_vocab = {'P' : 0, 'i' : 1, 'like' : 2, 'machine' : 3, 'learning' : 4, 'S' : 5, 'E' : 6}
+    number_dict = {i: w for i, w in enumerate(tgt_vocab)}
+    tgt_vocab_size = len(tgt_vocab)
+
+    src_len = 5
+    tgt_len = 5
+
+    d_model = 512  # Embedding Size
+    d_ff = 2048 # FeedForward dimension
+    d_k = d_v = 64  # dimension of K(=Q), V
+    n_layers = 6  # number of Encoder of Decoder Layer
+    n_heads = 4  # number of heads in Multi-Head Attention
+
+    def make_batch(sentences):
+        input_batch = [[src_vocab[n] for n in sentences[0].split()]]
+        output_batch = [[tgt_vocab[n] for n in sentences[1].split()]]
+        target_batch = [[tgt_vocab[n] for n in sentences[2].split()]]
+        return torch.LongTensor(input_batch), torch.LongTensor(output_batch), torch.LongTensor(target_batch)
+
+    enc_inputs, dec_inputs, target_batch = make_batch(sentences)
+    print(enc_inputs)
+
+    model = Transformer()
+
+    predict, _, _, _ = model(enc_inputs, dec_inputs)
+
+
+
+    src_emb = nn.Embedding(src_vocab_size, d_model)
+    pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
+    enc_outputs = src_emb(enc_inputs) + pos_emb(enc_inputs)
+    enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
+    # enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
+
+    #unit tests
+
+    context, attn = ScaledDotProductAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
+
+    ans, attn = MultiHeadAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
+
+    enc_o, self_attn = Encoder()(enc_inputs)
+
+    enc_inputs, dec_inputs, target_batch = make_batch(sentences)
+    # greedy_dec_input = greedy_decoder(model, enc_inputs, start_symbol=tgt_vocab["S"])
+    # scripted_module = torch.jit.script(model(enc_inputs, dec_inputs))
+
+
+    print(context.size())
+    print(context.transpose(1,2).is_contiguous())
+    # print(context.transpose(1,2).reshape(1, -1, n_heads * d_v))
+
+    print(enc_outputs.size())
+    # print(enc_outputs.view(-1, 8, 256).size())
 
