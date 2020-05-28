@@ -124,7 +124,7 @@ class Encoder(nn.Module):
         self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
 
-    def forward(self, enc_inputs): # enc_inputs : [batch_size x source_len]
+    def forward(self, enc_inputs): # enc_inputs : (batch_size, source_len)
         enc_outputs = self.src_emb(enc_inputs) + self.pos_emb(enc_inputs)
         enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
         enc_self_attns = []
@@ -140,7 +140,7 @@ class Decoder(nn.Module):
         self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(tgt_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
 
-    def forward(self, dec_inputs, enc_inputs, enc_outputs): # dec_inputs : [batch_size x target_len]
+    def forward(self, dec_inputs, enc_inputs, enc_outputs): # dec_inputs : (batch_size, target_len)
         dec_outputs = self.tgt_emb(dec_inputs) + self.pos_emb(dec_inputs)
         dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
         dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
@@ -164,8 +164,29 @@ class Transformer(nn.Module):
     def forward(self, enc_inputs, dec_inputs):
         enc_outputs, enc_self_attns = self.encoder(enc_inputs)
         dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
-        dec_logits = self.projection(dec_outputs) # dec_logits : [batch_size x src_vocab_size x tgt_vocab_size]
+        dec_logits = self.projection(dec_outputs) # dec_logits : (batch_size, src_vocab_size, tgt_vocab_size)
         return dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
+
+class Transformer_Mix(nn.Module):
+    def __init__(self):
+        super(Transformer_Mix,self).__init__()
+        self.transformer = Encoder()
+        self.fc = nn.Linear(d_model, d_model)
+        self.activ = nn.Tanh()
+        self.classifier = nn.Linear(d_model, 2)
+        self.norm = nn.LayerNorm(d_model)
+        self.decoder = nn.Linear(d_model, tgt_size)
+
+    def forward(self, enx_inputs, enc_self_attn_mask):
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
+        h_pooled = self.activ(self.fc(enc_outputs[:, 0]))
+        logits_clsf = self.classifier(h_pooled)
+
+        masked_pos = masked_pos[:, :, None].expand(-1, -1, output.size(-1)) # [batch_size, maxlen, d_model]
+        h_masked = torch.gather(output, 1, masked_pos) # masking position [batch_size, len, d_model]
+        h_masked = self.norm(self.activ2(self.linear(enc_outputs)))
+
+        
 
 if __name__ == '__main__':
 
@@ -229,4 +250,17 @@ if __name__ == '__main__':
 
     print(enc_outputs.size())
     # print(enc_outputs.view(-1, 8, 256).size())
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+
+    for epoch in range(20):
+        optimizer.zero_grad()
+        enc_inputs, dec_inputs, target_batch = make_batch(sentences)
+        outputs, enc_self_attns, dec_self_attns, dec_enc_attns = model(enc_inputs, dec_inputs)
+        loss = criterion(outputs, target_batch.contiguous().view(-1))
+        print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
+        loss.backward()
+        optimizer.step()
 
