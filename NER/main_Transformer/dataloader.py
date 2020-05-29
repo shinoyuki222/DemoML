@@ -136,6 +136,8 @@ class Corpus(object):
 
         for line in lines:
             segs = line.split('\t')
+            if len(segs)<3:
+                continue
             cls = segs[0]
             sent = segs[1]
             lbl = segs[2]
@@ -291,7 +293,7 @@ class DataLoader(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transformer NER')
-    parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
+    parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
                         help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
@@ -300,11 +302,11 @@ if __name__ == '__main__':
 
     corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
-    # data = torch.load("data/vae_nlg.pt")
-    dl = DataLoader(args.save_dir)()
+    # # data = torch.load("data/vae_nlg.pt")
+    # dl = DataLoader(args.save_dir)()
 
-    for sent, label,cls in dl:
-        print(sent,label,cls)
+    # for sent, label,cls in dl:
+    #     print(sent,label,cls)
 
     # a = data['dict']['src']['，']
     # print(a)
