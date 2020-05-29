@@ -5,9 +5,18 @@ import torch.nn.init as init
 import numpy as np
 import torch.optim as optim
 
+from utils import *
+from const import *
 # dtype = torch.LongTensor
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+config = load_obj('./data/Config.json')
+cls_size = config['num_class']
+tgt_size = config['num_label']
+src_vocab_size = config['num_word']
+src_len = config['max_len']
 
 def get_attn_pad_mask(seq_q, seq_k):
     # print(seq_q)
@@ -120,14 +129,22 @@ class DecoderLayer(nn.Module):
         return dec_outputs, dec_self_attn, dec_enc_attn
 
 class Encoder(nn.Module):
-    def __init__(self):
+    def __init__(self,pre_w2v = None):
         super(Encoder, self).__init__()
-        self.src_emb = nn.Embedding(src_vocab_size, d_model)
-        self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
+
+        if pre_w2v !=None:
+            self.src_emb = nn.Embedding.from_pretrained(pre_w2v)
+        else:
+            self.src_emb = nn.Embedding(src_vocab_size, d_model)
+
+        self.fc = nn.Linear(pre_w2v.size(1), d_model)
+
+        self.pos_emb = nn.Embedding(src_vocab_size, d_model)
+        # self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
 
     def forward(self, enc_inputs): # enc_inputs : (batch_size, source_len)
-        enc_outputs = self.src_emb(enc_inputs) + self.pos_emb(enc_inputs)
+        enc_outputs = self.fc(self.src_emb(enc_inputs))  + self.pos_emb(enc_inputs)
         enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
         enc_self_attns = []
         for layer in self.layers:
@@ -158,9 +175,9 @@ class Decoder(nn.Module):
         return dec_outputs, dec_self_attns, dec_enc_attns
 
 class Transformer(nn.Module):
-    def __init__(self):
+    def __init__(self,pre_w2v=None):
         super(Transformer, self).__init__()
-        self.encoder = Encoder()
+        self.encoder = Encoder(pre_w2v)
         self.decoder = Decoder()
         self.projection = nn.Linear(d_model, tgt_vocab_size, bias=False)
     def forward(self, enc_inputs, dec_inputs):
@@ -175,19 +192,19 @@ def gelu(x):
     return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 class Transformer_Mix(nn.Module):
-    def __init__(self):
-        super(Transformer_Mix,self).__init__()
-        self.encoder = Encoder()
+    def __init__(self, cls_size, tgt_size,pre_w2v=None):
+        super(Transformer_Mix, self).__init__()
+        self.encoder = Encoder(pre_w2v)
         self.fc = nn.Linear(d_model, d_model)
         self.activ = nn.Tanh()
-        self.classifier = nn.Linear(d_model, 2)
+        self.classifier = nn.Linear(d_model, cls_size)
         
         self.linear = nn.Linear(d_model, d_model)
         self.activ2 = gelu
         self.norm = nn.LayerNorm(d_model)
         self.decoder = nn.Linear(d_model, tgt_size)
 
-    def forward(self, enx_inputs, enc_self_attn_mask):
+    def forward(self, enc_inputs, enc_self_attn_mask):
         enc_outputs, enc_self_attns = self.encoder(enc_inputs)
         h_pooled = self.activ(self.fc(enc_outputs[:, 0]))
         logits_clsf = self.classifier(h_pooled)
@@ -198,7 +215,7 @@ class Transformer_Mix(nn.Module):
         h_masked = self.norm(self.activ2(self.linear(h_masked)))
         logits_tgt = self.decoder(h_masked)
         logits_tgt = logits_tgt * mask_tgt
-        return logits_tgt, logits_clsf 
+        return logits_tgt, logits_clsf
 
 
 if __name__ == '__main__':

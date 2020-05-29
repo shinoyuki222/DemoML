@@ -8,55 +8,12 @@ import json
 import numpy as np
 import torch
 import copy
+import pickle
+from utils import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def is_chinese(w):
-    if (w >= '\u4e00' and w <= '\u9fa5'):
-        return 1
-    else:
-        return 0
 
-
-def unicodeToAscii(s):
-    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
-    # return unicodedata.normalize('NFKD',s).encode('ascii','ignore')
-
-def split(sent):
-    return list(sent)
-
-def filter(s):
-    # if ' ' in s:
-    #     print(s)
-    return ''.join(c for c in s if is_chinese(c))
-    # s = split(s)
-    # for i,w in enumerate(s):
-    #     if not is_chinese(w):
-    #         s[i] = ' '
-    # return ''.join(s)
-
-def textprocess(s):
-    s = unicodeToAscii(s)
-    s = filter(s)
-    return s
-
-
-def word2idx(sents, word2idx):
-    return [[word2idx[w] if w in word2idx else UNK for w in s] for s in sents]
-
-def zeroPadding(l, fillvalue=PAD):
-    return list(itertools.zip_longest(*l, fillvalue=fillvalue))
-
-def binaryMatrix(l, value=PAD):
-    m = []
-    for i, seq in enumerate(l):
-        m.append([])
-        for token in seq:
-            if token == value:
-                m[i].append(0)
-            else:
-                m[i].append(1)
-    return m   
 
 class Dictionary(object):
     def __init__(self):
@@ -71,7 +28,7 @@ class Dictionary(object):
 
     def addSents(self, sentences):
         for sent in sentences:
-            for word in list(sent):
+            for word in sent.split(' '):
                 self.addWord(word)
 
     def addWord(self, word):
@@ -94,15 +51,80 @@ class Dictionary(object):
             if v >= min_count:
                 self.add2Dict(k)
 
+class Dict_lbl(object):
+    def __init__(self):
+        self.word2idx = {
+            WORD[PAD]: PAD
+        }
+        self.word2count = {}
+        self.idx = len(self.word2idx)
+
+    def addSents(self, sentences):
+        for sent in sentences:
+            for word in sent.split(' '):
+                self.addWord(word)
+
+    def addWord(self, word):
+        if word not in self.word2count:
+            self.word2count[word] = 1
+        else:
+            self.word2count[word] += 1
+
+    def add2Dict(self, word):
+        self.word2idx[word] = self.idx
+        self.idx += 1
+
+    def __len__(self):
+        assert self.idx == len(self.word2idx)
+        return self.idx
+
+    def __call__(self, sentences):
+        self.addSents(sentences)
+        for k,v in self.word2count.items():
+            self.add2Dict(k)
+
+class Dict_clsf(object):
+    def __init__(self):
+        self.word2idx = {}
+        self.word2count = {}
+        self.idx = len(self.word2idx)
+
+    def addSents(self, sentences):
+        for sent in sentences:
+            self.addWord(sent)
+
+    def addWord(self, word):
+        if word not in self.word2count:
+            self.word2count[word] = 1
+        else:
+            self.word2count[word] += 1
+
+    def add2Dict(self, word):
+        self.word2idx[word] = self.idx
+        self.idx += 1
+
+    def __len__(self):
+        assert self.idx == len(self.word2idx)
+        return self.idx
+
+    def __call__(self, sentences):
+        self.addSents(sentences)
+        for k,v in self.word2count.items():
+            self.add2Dict(k)
 
 class Corpus(object):
-    def __init__(self, corpus, w2v_file, save_data, min_count=1, train = 1):
+    def __init__(self, corpus, w2v_file, save_dir, min_count=1, train = 1):
         self.corpus = corpus
         self.dict = Dictionary()
+        self.dict_clsf = Dict_clsf()
+        self.dict_lbl = Dict_lbl()
         self.sents = []
+        self.clss = []
+        self.lbls = []
         self.w2v_file = w2v_file
         self.min_count=1
-        self.save_data = save_data
+        self.save_dir = save_dir
+        self.max_len = 0
         if train:
             self.parse()
             self.load_w2v()
@@ -111,11 +133,22 @@ class Corpus(object):
 
     def parse(self):
         lines = open(self.corpus, encoding='utf-8').read().strip().split('\n')
+
         for line in lines:
-            self.sents.append(textprocess(line))
-        # self.sents = lines
-        # print(self.sents[:10])
+            segs = line.split('\t')
+            cls = segs[0]
+            sent = segs[1]
+            lbl = segs[2]
+            sent = textprocess(sent)
+            if len(sent.split(' ')) == len(lbl.split(' ')):
+                self.sents.append(sent)
+                self.clss.append(cls)
+                self.lbls.append(lbl)
+                self.max_len = max(self.max_len, len(sent.split(' ')))
+
         self.dict(self.sents)
+        self.dict_clsf(self.clss)
+        self.dict_lbl(self.lbls)
 
     def load_w2v(self):
         w2c_dict = {}
@@ -137,102 +170,141 @@ class Corpus(object):
             if word in w2c_dict:
                 self.pre_w2v[idx] = np.asarray(w2c_dict[word])
 
-    def save(self):
-        data = {
-            'pre_w2v': self.pre_w2v,
-            'word2idx': self.dict.word2idx,
-            'vocab_size': len(self.dict),
-            'train': word2idx(self.sents, self.dict.word2idx)
-        }
 
-        torch.save(data, self.save_data)
-        print('word length - [{}]'.format(len(self.dict)))
+    def save(self):
+
+        save_obj(self.dict.word2idx, self.save_dir + "dict.json")
+        save_obj(self.dict_clsf.word2idx, self.save_dir + "dict_clsf.json")
+        save_obj(self.dict_lbl.word2idx, self.save_dir + "dict_lbl.json")
+        torch.save(self.pre_w2v, self.save_dir + 'pre_w2v')
+        
+        print("There are {0} examples".format(len(self.sents)),flush=True)
+
+        save_obj(self.sents, self.save_dir + "DataSentence.txt")
+        save_obj(self.clss, self.save_dir + "DataClass.txt")
+        save_obj(self.lbls, self.save_dir + "DataLabels.txt")
+
+        print('Data saved.', flush=True)
+
+        config = {}
+        config['num_word'] = len(self.dict.word2idx)
+        config['num_label'] = len(self.dict_lbl.word2idx)
+        config['num_class'] = len(self.dict_clsf.word2idx)
+        config['num_train'] = len(self.sents)
+        config['max_len'] = self.max_len
+
+        save_obj(config, self.save_dir + 'Config.json')
+
+
 
 
 
 class DataLoader(object):
-    def __init__(self, src_sents, max_len=30, batch_size=16):
-        self.n_sents = len(src_sents)
+    def __init__(self, save_dir, batch_size=16):
+        self.save_dir = save_dir
+
+        self.dict = load_obj(self.save_dir + "dict.json")
+        self.dict_clsf = load_obj(self.save_dir + "dict_clsf.json")
+        self.dict_lbl = load_obj(self.save_dir + "dict_lbl.json")
+
+        self.sents = load_obj(self.save_dir + "DataSentence.txt")
+        self.clss = load_obj(self.save_dir + "DataClass.txt")
+        self.lbls = load_obj(self.save_dir + "DataLabels.txt")
+        self.config = load_obj(self.save_dir + 'Config.json')
+        self.n_sents = len(self.sents)
+        print("There are {0} examples".format(self.n_sents),flush=True)
+
+
+        # self.n_sents = len(src_sents)
         self.batch_size = batch_size
 
         self.n_batch = self.n_sents//self.batch_size+1
         # self.n_batch = 2
-        self.max_len = max_len
-        self.enc_sents = src_sents
+        self.max_len = self.config['max_len']
+
         self.ds_loader = []
 
         # self._shuffle()
-        self.gen_data()
-
+    def __call__(self):
+        opt = self.gen_data()
+        self.update_config()
+        return self.gen_data()
     # def _shuffle(self):
     #     indices = np.arange(len(self.enc_sents))
     #     np.random.shuffle(indices)
     #     print(indices)
     #     # indices = list(indices)
     #     self.enc_sents = self.enc_sents[indices]
+    def tk2idx(self, dict_tks, tks):
+        return [dict_tks[entity] for entity in tks.split(' ')]
 
     def EncoderVar(self, sents_batch):
-        lengths = torch.tensor([len(indexes) for indexes in sents_batch])
-        padList = zeroPadding(sents_batch)
+        enc_batch = []
+        indexes_batch = [self.tk2idx(self.dict, sentence) for sentence in sents_batch]
+        for indexes in indexes_batch:
+            enc_batch.append([BOS] + indexes)
+        padList = zeroPadding(enc_batch)
         padVar = torch.LongTensor(padList)
-        return padVar, lengths
+        return padVar.transpose(0,1)
 
-    def DecoderVar(self, sents_batch):
-        dec_batch = []
-        for indexes in sents_batch:
-            dec_batch.append([BOS] + indexes)
+    def DecoderVar(self, lbls_batch):
+        dec_batch = [self.tk2idx(self.dict_lbl, sentence) for sentence in lbls_batch]
         padList = zeroPadding(dec_batch)
         padVar = torch.LongTensor(padList)
-        return padVar
+        return padVar.transpose(0,1)
 
-    def OutputVar(self, sents_batch):
-        opt_batch = []
-        max_target_len = 0
-        for indexes in sents_batch:
-            opt_batch.append(indexes+[EOS])
-            max_target_len = max(max_target_len,len(indexes)+1)
-        # max_target_len = max([len(indexes)+1 for indexes in sents_batch])
-        
-        padList = zeroPadding(opt_batch)
-        mask = binaryMatrix(padList)
-        mask = torch.BoolTensor(mask)
-        padVar = torch.LongTensor(padList)
-        return padVar, mask, max_target_len
+    def ClassVar(self, clss_batch):
+        dec_batch = [ [self.dict_clsf[cls]]  for cls in clss_batch]
+        dec_batch = torch.LongTensor(dec_batch)
+        return dec_batch
 
 
-    def batch2TrainData(self,sent_batch):
-        enc, lengths = self.EncoderVar(sent_batch)
-        dec = self.DecoderVar(sent_batch)
-        opt, mask, max_target_len= self.OutputVar(sent_batch)
-        return enc, lengths, dec, opt, mask
+    def batch2TrainData(self, sent_batch, lbls_batch, clss_batch):
+        enc = self.EncoderVar(sent_batch)
+        tgt = self.DecoderVar(lbls_batch)
+        cls = self.ClassVar(clss_batch)
+        return enc, tgt, cls
 
     def gen_data(self):
-        sents = copy.deepcopy(self.enc_sents)
-        batched_var = []
+        sents = copy.deepcopy(self.sents)
+        lbls = copy.deepcopy(self.lbls)
+        clss = copy.deepcopy(self.clss)
+        
+        enc, tgt, cls = self.batch2TrainData(sents, lbls, clss)
+        # self.max_len = enc.size()
         for i in range(self.n_batch):
             idx_s = i*self.batch_size
             idx_e = (i+1)*self.batch_size
 
-            sent_batch =  sorted(sents[idx_s:idx_e],key = lambda i:len(i),reverse=True)
-            self.ds_loader.append(self.batch2TrainData(sent_batch))
+            sent_batch = enc[idx_s:idx_e,:]
+            lbls_batch = tgt[idx_s:idx_e,:]
+            clss_batch = cls[idx_s:idx_e,:]
+
+            self.ds_loader.append((sent_batch, lbls_batch, clss_batch))
         return self.ds_loader
 
 
-
+    def update_config(self):
+        return 
+        # self.config['max_len'] = self.max_len
+        # save_obj(config, self.save_dir + 'Config.json')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='VAE NLG')
-    parser.add_argument('--corpus-data', type=str, default='../data/songci',
+    parser = argparse.ArgumentParser(description='Transformer NER')
+    parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
                         help='path to corpus data')
-    parser.add_argument('--save-data', type=str, default='../data/transformer_ner.pt',
+    parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
 
-    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_data)
+    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     # data = torch.load("data/vae_nlg.pt")
-    # dl = DataLoader(data['train'])
+    dl = DataLoader(args.save_dir)()
+
+    for sent, label,cls in dl:
+        print(sent,label,cls)
 
     # a = data['dict']['src']['，']
     # print(a)
