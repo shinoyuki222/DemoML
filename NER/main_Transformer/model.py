@@ -215,7 +215,7 @@ class Transformer_Mix(nn.Module):
         h_masked = self.norm(self.activ2(self.linear(h_masked)))
         logits_tgt = self.decoder(h_masked)
         logits_tgt = logits_tgt * mask_tgt
-        return logits_tgt, logits_clsf
+        return logits_tgt[:,1:,:], logits_clsf
 
 
 if __name__ == '__main__':
