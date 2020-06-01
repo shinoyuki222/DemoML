@@ -202,7 +202,7 @@ class Corpus(object):
 
 
 class DataLoader(object):
-    def __init__(self, save_dir, batch_size=16):
+    def __init__(self, save_dir, batch_size=218):
         self.save_dir = save_dir
 
         self.dict = load_obj(self.save_dir + "dict.json")

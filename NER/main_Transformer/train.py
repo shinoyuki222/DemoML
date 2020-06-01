@@ -9,11 +9,13 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from dataloader import DataLoader, Corpus, load_obj
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from model import Transformer_Mix, get_attn_pad_mask
 
 
 if __name__ == '__main__':
+
+    print('device = ', device, flush=True)
     parser = argparse.ArgumentParser(description='Transformer NER')
     parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
                         help='path to corpus data')
@@ -35,12 +37,18 @@ if __name__ == '__main__':
     criterion_clsf = nn.CrossEntropyLoss().to(device)
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    
+
+    model.train()
     for epoch in range(20):
         loss_epoch = 0
         for enc, tgt, cls in tqdm(dl, mininterval=1, desc='Generator Train Processing', leave=False):
             optimizer.zero_grad()
+            enc = enc.to(device)
+            tgt = tgt.to(device)
+            cls = cls.to(device)
             enc_self_attn_mask = get_attn_pad_mask(enc, enc)
+            enc_self_attn_mask.to(device)
+
             logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
             loss_tgt = criterion_tgt(logits_tgt.transpose(1, 2), tgt) # for masked LM
             loss_tgt = (loss_tgt.float()).mean()

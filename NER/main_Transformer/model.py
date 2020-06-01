@@ -65,6 +65,9 @@ class MultiHeadAttention(nn.Module):
         self.W_K = nn.Linear(d_model, d_k * n_heads)
         self.W_V = nn.Linear(d_model, d_v * n_heads)
 
+        self.scale_dot_pro_attn = ScaledDotProductAttention()
+        self.linear = nn.Linear(n_heads * d_v, d_model)
+
     def forward(self, Q, K, V, attn_mask):
         # batch first
         # Q: (batch_size, len_q, d_model)
@@ -82,11 +85,11 @@ class MultiHeadAttention(nn.Module):
 
         # context: (batch_size, n_heads, len_q, d_v)
         # attn: (batch_size, n_heads, len_q/len_k, len_k/len_q)
-        context, attn = ScaledDotProductAttention()(q_s, k_s, v_s, attn_mask)
+        context, attn = self.scale_dot_pro_attn(q_s, k_s, v_s, attn_mask)
         # context: (batch_size, n_heads, len_q, d_v) -trans->(batch_size, len_q, n_heads, d_v) -reshape->(batch_size , len_q , n_heads * d_v)
         context = context.transpose(1, 2).reshape(batch_size, -1, n_heads * d_v) # context: (batch_size , len_q , n_heads * d_v)
         # output: (batch_size, len_q, d_model)
-        output = nn.Linear(n_heads * d_v, d_model)(context)
+        output = self.linear(context)
         return nn.LayerNorm(d_model)(output + residual), attn 
 
 class PoswiseFFN(nn.Module):
@@ -95,12 +98,14 @@ class PoswiseFFN(nn.Module):
         self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
         self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
 
+        self.activ = nn.ReLU()
+        self.norm = nn.LayerNorm(d_model)
     def forward(self, inputs):
-        # inputs : (batch_size, len_q, d_model)
-        residual = inputs 
-        output = nn.ReLU()(self.conv1(inputs.transpose(1, 2)))
+        residual = inputs # inputs : (batch_size, len_q, d_model)
+        output = self.activ(self.conv1(inputs.transpose(1, 2)))
         output = self.conv2(output).transpose(1, 2)
-        return nn.LayerNorm(d_model)(output + residual)
+        output = self.norm(output + residual)
+        return output
 
 class EncoderLayer(nn.Module):
     def __init__(self):
@@ -111,8 +116,7 @@ class EncoderLayer(nn.Module):
     def forward(self, enc_inputs, enc_self_attn_mask):
         # Q = K = V = enc_inputs
         enc_outputs, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask)
-        # enc_outputs: (batch_size, len_q, d_model)
-        enc_outputs = self.pos_ffn(enc_outputs) 
+        enc_outputs = self.pos_ffn(enc_outputs) # enc_outputs: (batch_size, len_q, d_model)
         return enc_outputs, attn
 
 class DecoderLayer(nn.Module):
@@ -194,15 +198,15 @@ def gelu(x):
 class Transformer_Mix(nn.Module):
     def __init__(self, cls_size, tgt_size,pre_w2v=None):
         super(Transformer_Mix, self).__init__()
-        self.encoder = Encoder(pre_w2v)
-        self.fc = nn.Linear(d_model, d_model)
-        self.activ = nn.Tanh()
-        self.classifier = nn.Linear(d_model, cls_size)
+        self.encoder = Encoder(pre_w2v).to(device)
+        self.fc = nn.Linear(d_model, d_model).to(device)
+        self.activ = nn.Tanh().to(device)
+        self.classifier = nn.Linear(d_model, cls_size).to(device)
         
-        self.linear = nn.Linear(d_model, d_model)
+        self.linear = nn.Linear(d_model, d_model).to(device)
         self.activ2 = gelu
-        self.norm = nn.LayerNorm(d_model)
-        self.decoder = nn.Linear(d_model, tgt_size)
+        self.norm = nn.LayerNorm(d_model).to(device)
+        self.decoder = nn.Linear(d_model, tgt_size).to(device)
 
     def forward(self, enc_inputs, enc_self_attn_mask):
         enc_outputs, enc_self_attns = self.encoder(enc_inputs)
