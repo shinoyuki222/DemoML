@@ -60,18 +60,18 @@ def evaluate_f1(model, dl_test, criterion_clsf = nn.CrossEntropyLoss().to(device
         # print(cls_idx.size())
         pred_clss += cls_idx.tolist()
         true_clss += cls.tolist()
-        print(len(pred_tags), len(true_tags))
-        print(pred_tags)
-        print(true_tags)
-        print(len(pred_clss), len(true_clss))
-        print(pred_clss)
+        # print(len(pred_tags), len(true_tags))
+        # print(pred_tags)
+        # print(true_tags)
+        # print(len(pred_clss), len(true_clss))
+        # print(pred_clss)
 
-        print(true_clss)
+        # print(true_clss)
         assert len(pred_tags) == len(true_tags)
         assert len(pred_clss) == len(true_clss)
-        f1_tgt = f1_score(pred_tags, true_tags, average='macro')
-        f1_cls = f1_score(pred_clss, true_clss, average='macro')
-        return loss_test/len(dl_test), f1_cls, f1_tgt
+    f1_tgt = f1_score(pred_tags, true_tags, average='macro')
+    f1_cls = f1_score(pred_clss, true_clss, average='macro')
+    return loss_test/len(dl_test), f1_cls, f1_tgt
 
 if __name__ == '__main__':
 

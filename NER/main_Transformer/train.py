@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     print('device = ', device, flush=True)
     parser = argparse.ArgumentParser(description='Transformer NER')
-    parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
+    parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
                         help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
@@ -59,10 +59,11 @@ if __name__ == '__main__':
     config = load_obj(args.save_dir+'Config.json')
     cls_size = config['num_class']
     tgt_size = config['num_label']
-    # corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
+    
+    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     dl = DataLoader(args.save_dir, batch_size = 256)()
-    dl_train, dl_test = train_test_split(dl)
+    dl_train, dl_test = split_data(dl)
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
