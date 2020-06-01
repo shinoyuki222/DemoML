@@ -44,7 +44,7 @@ def evaluate_f1(model, dl_test, criterion_clsf = nn.CrossEntropyLoss().to(device
             logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
             loss_tgt = criterion_tgt(logits_tgt.transpose(1, 2), tgt) # for masked LM
             loss_tgt = (loss_tgt.float()).mean()
-            loss_clsf = criterion_clsf(logits_clsf, cls.squeeze(1))# for sentence classification
+            loss_clsf = criterion_clsf(logits_clsf, cls)# for sentence classification
             loss = loss_tgt + loss_clsf
             loss_test+=loss
 

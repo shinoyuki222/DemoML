@@ -283,7 +283,6 @@ class DataLoader(object):
         enc = enc[indices]
         tgt = tgt[indices]
         cls = cls[indices]
-        print(cls)
 
         for i in range(self.n_batch):
             idx_s = i*self.batch_size
@@ -291,7 +290,7 @@ class DataLoader(object):
 
             sent_batch = enc[idx_s:idx_e,:]
             lbls_batch = tgt[idx_s:idx_e,:]
-            clss_batch = cls[idx_s:idx_e,:]
+            clss_batch = cls[idx_s:idx_e]
 
             self.ds_loader.append((sent_batch, lbls_batch, clss_batch))
         return self.ds_loader
