@@ -231,12 +231,16 @@ class DataLoader(object):
         opt = self.gen_data()
         self.update_config()
         return self.gen_data()
+
     # def _shuffle(self):
-    #     indices = np.arange(len(self.enc_sents))
+    #     indices = np.arange(len(self.sents))
     #     np.random.shuffle(indices)
-    #     print(indices)
-    #     # indices = list(indices)
-    #     self.enc_sents = self.enc_sents[indices]
+    #     print(type(self.sents))
+    #     # print(indices.tolist())
+    #     self.sents = self.sents[indices.tolist()]
+    #     self.clss = self.clss[indices.tolist()]
+    #     self.lbls = self.lbls[indices.tolist()]
+
     def tk2idx(self, dict_tks, tks):
         return [dict_tks[entity] for entity in tks.split(' ')]
 
@@ -258,7 +262,7 @@ class DataLoader(object):
     def ClassVar(self, clss_batch):
         dec_batch = [ [self.dict_clsf[cls]]  for cls in clss_batch]
         dec_batch = torch.LongTensor(dec_batch)
-        return dec_batch
+        return dec_batch.squeeze(1)
 
 
     def batch2TrainData(self, sent_batch, lbls_batch, clss_batch):
@@ -273,7 +277,14 @@ class DataLoader(object):
         clss = copy.deepcopy(self.clss)
         
         enc, tgt, cls = self.batch2TrainData(sents, lbls, clss)
-        # self.max_len = enc.size()
+        # shuffle
+        indices = np.arange(len(self.sents))
+        np.random.shuffle(indices)
+        enc = enc[indices]
+        tgt = tgt[indices]
+        cls = cls[indices]
+        print(cls)
+
         for i in range(self.n_batch):
             idx_s = i*self.batch_size
             idx_e = (i+1)*self.batch_size

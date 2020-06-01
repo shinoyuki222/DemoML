@@ -23,6 +23,28 @@ def split_data(data, test_size=0.33):
     # idx = len(data)*(1-test_size)
     # return data[:idx], data[idx:]
 
+def train_iter(model, dl_train, optimizer, criterion_clsf = nn.CrossEntropyLoss().to(device), criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)):
+    model.train()
+    loss_epoch = 0
+
+    for enc, tgt, cls in tqdm(dl_train[:], mininterval=1, desc='Generator Train Processing', leave=False):
+        optimizer.zero_grad()
+        enc = enc.to(device)
+        tgt = tgt.to(device)
+        cls = cls.to(device)
+        enc_self_attn_mask = get_attn_pad_mask(enc, enc)
+        enc_self_attn_mask.to(device)
+
+        logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
+        loss_tgt = criterion_tgt(logits_tgt.transpose(1, 2), tgt) # for masked LM
+        loss_tgt = (loss_tgt.float()).mean()
+        loss_clsf = criterion_clsf(logits_clsf, cls)# for sentence classification
+        loss = loss_tgt + loss_clsf
+        loss_epoch+=loss
+        loss.backward()
+        optimizer.step()
+    return loss_epoch/len(dl_train)
+
 if __name__ == '__main__':
 
     print('device = ', device, flush=True)
@@ -50,27 +72,9 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(20):
-        loss_epoch = 0
-        model.train()
-        for enc, tgt, cls in tqdm(dl_train[:], mininterval=1, desc='Generator Train Processing', leave=False):
-            optimizer.zero_grad()
-            enc = enc.to(device)
-            tgt = tgt.to(device)
-            cls = cls.to(device)
-            enc_self_attn_mask = get_attn_pad_mask(enc, enc)
-            enc_self_attn_mask.to(device)
+        loss_epoch = train_iter(model, dl_train[:1], optimizer, criterion_clsf, criterion_tgt)
 
-            logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
-            loss_tgt = criterion_tgt(logits_tgt.transpose(1, 2), tgt) # for masked LM
-            loss_tgt = (loss_tgt.float()).mean()
-            loss_clsf = criterion_clsf(logits_clsf, cls.squeeze(1))# for sentence classification
-            loss = loss_tgt + loss_clsf
-            loss_epoch+=loss
-            loss.backward()
-            optimizer.step()
-            # print('batch_cost = {:0.6f}'.format(loss), flush=True)
-
-        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test)
+        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test[:1])
 
         torch.save({
         'model': model.state_dict(),

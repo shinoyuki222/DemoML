@@ -22,15 +22,15 @@ def split_data(data, test_size=0.33):
     # idx = len(data)*(1-test_size)
     # return data[:idx], data[idx:]
 
-def evaluate_f1(model,dl_test):
+def evaluate_f1(model, dl_test, criterion_clsf = nn.CrossEntropyLoss().to(device), criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)):
     loss_test = 0
     pred_tags = []
     true_tags = []
 
     pred_clss = []
     true_clss = []
-    criterion_clsf = nn.CrossEntropyLoss().to(device)
-    criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
+    criterion_clsf = criterion_clsf
+    criterion_tgt = criterion_tgt
 
     for enc, tgt, cls in dl_test[:]:
         model.eval()
@@ -59,12 +59,19 @@ def evaluate_f1(model,dl_test):
 
         # print(cls_idx.size())
         pred_clss += cls_idx.tolist()
-        true_clss += cls.squeeze(1).tolist()
-        assert len(pred_tags) ==len(true_tags)
+        true_clss += cls.tolist()
+        print(len(pred_tags), len(true_tags))
+        print(pred_tags)
+        print(true_tags)
+        print(len(pred_clss), len(true_clss))
+        print(pred_clss)
+
+        print(true_clss)
+        assert len(pred_tags) == len(true_tags)
         assert len(pred_clss) == len(true_clss)
         f1_tgt = f1_score(pred_tags, true_tags, average='macro')
         f1_cls = f1_score(pred_clss, true_clss, average='macro')
-        return loss_test, f1_cls, f1_tgt
+        return loss_test/len(dl_test), f1_cls, f1_tgt
 
 if __name__ == '__main__':
 
