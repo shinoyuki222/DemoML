@@ -72,9 +72,9 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(20):
-        loss_epoch = train_iter(model, dl_train[:1], optimizer, criterion_clsf, criterion_tgt)
+        loss_epoch = train_iter(model, dl_train[:], optimizer, criterion_clsf, criterion_tgt)
 
-        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test[:1])
+        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test[:])
 
         torch.save({
         'model': model.state_dict(),
