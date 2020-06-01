@@ -8,10 +8,17 @@ import numpy as np
 import torch.optim as optim
 from tqdm import tqdm
 
+from sklearn.model_selection import train_test_split
+
 from dataloader import DataLoader, Corpus, load_obj
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from model import Transformer_Mix, get_attn_pad_mask
 
+def split_data(data, test_size=0.33):
+    dl_train, dl_test =train_test_split(data, test_size=test_size, random_state=42)
+    return dl_train, dl_test
+    # idx = len(data)*(1-test_size)
+    # return data[:idx], data[idx:]
 
 if __name__ == '__main__':
 
@@ -29,7 +36,8 @@ if __name__ == '__main__':
     tgt_size = config['num_label']
     # corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
-    dl = DataLoader(args.save_dir)()
+    dl = DataLoader(args.save_dir, batch_size = 256)()
+    dl_train, dl_test = train_test_split(dl)
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
@@ -41,7 +49,7 @@ if __name__ == '__main__':
     model.train()
     for epoch in range(20):
         loss_epoch = 0
-        for enc, tgt, cls in tqdm(dl, mininterval=1, desc='Generator Train Processing', leave=False):
+        for enc, tgt, cls in tqdm(dl_train, mininterval=1, desc='Generator Train Processing', leave=False):
             optimizer.zero_grad()
             enc = enc.to(device)
             tgt = tgt.to(device)
