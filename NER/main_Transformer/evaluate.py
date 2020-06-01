@@ -54,13 +54,19 @@ def evaluate_f1(model,dl_test):
         score_cls, cls_idx = torch.max(logits_clsf, dim = -1)
 
         for pre, true, pad_num in zip(tgt_idx, tgt, pad_mask):
-            pred_tags += list(pre[1:-pad_num])
-            true_tags += list(true[1:-pad_num])
+            pred_tags += pre[1:-pad_num].data.tolist()
+            true_tags += true[1:-pad_num].data.tolist()
 
         # print(cls_idx.size())
-        pred_clss += list(cls_idx)
-        true_clss += list(cls)
-        assert len(pred_tags) ==len(true_tags)
+        pred_clss += cls_idx.tolist()
+        true_clss += cls.squeeze(1).tolist()
+        print(len(pred_tags), len(true_tags))
+        print(pred_tags)
+        print(true_tags)
+        print(len(pred_clss), len(true_clss))
+        print(pred_clss)
+        print(true_clss)
+        assert len(pred_tags) == len(true_tags)
         assert len(pred_clss) == len(true_clss)
         f1_tgt = f1_score(pred_tags, true_tags, average='macro')
         f1_cls = f1_score(pred_clss, true_clss, average='macro')
@@ -100,7 +106,7 @@ if __name__ == '__main__':
     criterion_clsf = nn.CrossEntropyLoss().to(device)
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
 
-    loss_epoch_test, f1_cls, f1_tgt = evaluate_f1(model, dl_test[:1])
+    loss_epoch_test, f1_cls, f1_tgt = evaluate_f1(model, dl_test)
     print('test_cost = {0:6f}, f1_intent = {1:4f}, f1_slot = {2:4f}'.format(loss_epoch_test, f1_cls, f1_tgt), flush=True)
 
         
