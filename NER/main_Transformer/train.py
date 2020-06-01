@@ -7,8 +7,11 @@ import torch.nn.init as init
 import numpy as np
 import torch.optim as optim
 from tqdm import tqdm
-
+import os
 from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import f1_score
+from evaluate import evaluate_f1
 
 from dataloader import DataLoader, Corpus, load_obj
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -46,10 +49,10 @@ if __name__ == '__main__':
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    model.train()
     for epoch in range(20):
         loss_epoch = 0
-        for enc, tgt, cls in tqdm(dl_train, mininterval=1, desc='Generator Train Processing', leave=False):
+        model.train()
+        for enc, tgt, cls in tqdm(dl_train[:], mininterval=1, desc='Generator Train Processing', leave=False):
             optimizer.zero_grad()
             enc = enc.to(device)
             tgt = tgt.to(device)
@@ -66,7 +69,11 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             # print('batch_cost = {:0.6f}'.format(loss), flush=True)
-        print('Epoch:{0} , cost = {:1.6f}'.format(epoch + 1, loss_epoch), flush=True)
-        
-    # for sent, label,cls in dl:
-    #     print(sent,label,cls)
+
+        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test)
+
+        torch.save({
+        'model': model.state_dict(),
+        'model_opt': optimizer.state_dict()}, os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")))
+
+        print('Epoch:{0} , train_cost = {1:4f}, test_cost = {2:4f}, f1_intent = {3:4f}, f1_slot = {4:4f}'.format(epoch + 1, loss_epoch, loss_epoch_test, f1_clsf, f1_tgt), flush=True)        

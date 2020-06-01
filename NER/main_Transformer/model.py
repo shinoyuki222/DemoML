@@ -222,7 +222,6 @@ class Transformer_Mix(nn.Module):
         logits_tgt = logits_tgt * mask_tgt
         return logits_tgt[:,1:,:], logits_clsf
 
-
 if __name__ == '__main__':
 
     sentences = ['我 喜欢 机器 学习 P', 'S i like machine learning', 'i like machine learning E']
