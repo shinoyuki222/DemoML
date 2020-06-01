@@ -67,6 +67,7 @@ class MultiHeadAttention(nn.Module):
 
         self.scale_dot_pro_attn = ScaledDotProductAttention()
         self.linear = nn.Linear(n_heads * d_v, d_model)
+        self.norm = nn.LayerNorm(d_model)
 
     def forward(self, Q, K, V, attn_mask):
         # batch first
@@ -90,7 +91,7 @@ class MultiHeadAttention(nn.Module):
         context = context.transpose(1, 2).reshape(batch_size, -1, n_heads * d_v) # context: (batch_size , len_q , n_heads * d_v)
         # output: (batch_size, len_q, d_model)
         output = self.linear(context)
-        return nn.LayerNorm(d_model)(output + residual), attn 
+        return self.norm(output + residual), attn 
 
 class PoswiseFFN(nn.Module):
     def __init__(self):
@@ -136,7 +137,7 @@ class Encoder(nn.Module):
     def __init__(self,pre_w2v = None):
         super(Encoder, self).__init__()
 
-        if pre_w2v !=None:
+        if torch.sum(pre_w2v):
             self.src_emb = nn.Embedding.from_pretrained(pre_w2v)
         else:
             self.src_emb = nn.Embedding(src_vocab_size, d_model)
