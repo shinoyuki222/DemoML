@@ -1,10 +1,37 @@
 import os
 
+def check_dir(path):
+    return os.path.exists(path)
+
+def remove_old_file(path):
+    if check_dir(path):
+        os.remove(path)
+
+def save_obj(obj, filename):
+    remove_old_file(filename)
+    json.dump(obj, open(filename, 'w', encoding="utf8"), ensure_ascii=False)
+
 def findFiles(path): return glob.glob(path)
 
 def readLines(data_path):
 	lines = open(data_path, encoding='utf-8').read().strip().split('\n')
 	return lines
+
+def readTopKLines(data_path, line=1000):
+	lines = []
+	with open(data_path, encoding='utf-8') as f:
+		for i, line in enumerate(f):
+			if i == 1000:
+				break
+			lines.append(line.strip())
+	return lines
+
+def saveLines(lines, data_path):
+	remove_old_file(data_path)
+	with open(data_path, 'w', encoding ='utf-8') as f:
+		for line in lines:
+			f.write("{0}\n".format(line))
+
 
 class Data:
 	def __init__(self, name, lang=''):
@@ -87,8 +114,17 @@ if __name__ == '__main__':
 	# data.Raw_data()
 
 	# exit()
-	domains = os.listdir(args.language)
+	import glob
+	path = os.path.join(args.language, "*BOI*")
+	domains = glob.glob(path)
+	# domains = os.listdir(path)
+	lines = []
 	for domain in domains:
-		domain = domain.split('.')[0]
-		data = Data(domain, args.language)
-		data.Raw_data()
+		# domain = domain.split('\\')[-1].split('.')[0]
+		# lines += readTopKLines(domain)
+		lines += readLines(domain)
+
+	saveLines(lines,'nav.txt')
+		# print(domain)
+		# data = Data(domain, args.language)
+		# data.Raw_data()
