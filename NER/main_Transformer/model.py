@@ -222,6 +222,15 @@ class Transformer_Mix(nn.Module):
         logits_tgt = logits_tgt * mask_tgt
         return logits_tgt[:,1:,:], logits_clsf
 
+# model = nn.Transformer(d_model=512, nhead=4, num_encoder_layers=6,
+#                  num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
+#                  activation="relu", custom_encoder=None, custom_decoder=None)
+
+# model(src = enc_outputs.transpose(1,0), tgt = enc_outputs.transpose(1,0), src_mask=None, tgt_mask=None,
+#                 memory_mask=None, src_key_padding_mask=enc_self_attn_mask_src,
+#                 tgt_key_padding_mask=enc_self_attn_mask_tgt, memory_key_padding_mask=None)
+
+
 if __name__ == '__main__':
 
     sentences = ['我 喜欢 机器 学习 P', 'S i like machine learning', 'i like machine learning E']
