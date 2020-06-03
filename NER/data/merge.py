@@ -119,6 +119,7 @@ if __name__ == '__main__':
 	domains = glob.glob(path)
 	# domains = os.listdir(path)
 	lines = []
+	lines_less = []
 	for domain in domains:
 		# domain = domain.split('\\')[-1].split('.')[0]
 		lines_less += readTopKLines(domain)

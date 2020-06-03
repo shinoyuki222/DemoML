@@ -4,10 +4,10 @@ BOS = 2
 EOS = 3
 
 WORD = {
-    PAD: '<pad>',
-    UNK: '<unk>',
-    BOS: '<s>',
-    EOS: '</s>'
+    PAD: "[PAD]",
+    UNK: "[UNK]",
+    BOS: "[CLS]",
+    EOS: "[SEP]"
 }
 
 
