@@ -121,10 +121,11 @@ if __name__ == '__main__':
 	lines = []
 	for domain in domains:
 		# domain = domain.split('\\')[-1].split('.')[0]
-		# lines += readTopKLines(domain)
+		lines_less += readTopKLines(domain)
 		lines += readLines(domain)
 
 	saveLines(lines,'nav.txt')
+	saveLines(lines_less,'nav_less.txt')
 		# print(domain)
 		# data = Data(domain, args.language)
 		# data.Raw_data()
