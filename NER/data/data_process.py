@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 import os
-
+import re
 def findFiles(path): return glob.glob(path)
 
 def readLines(data_path):
@@ -11,8 +12,13 @@ class Data:
 		self.raw_data = os.path.join(lang, name+'.txt')
 		self.BOI_data = os.path.join(lang, name+'_BOI.txt')
 
+	def spliteKeyWord(self,str):
+	    regex = r"[\u4e00-\ufaff]|[0-9]+|[a-zA-Z]+\'*[a-z]*"
+	    matches = re.findall(regex, str, re.UNICODE)
+	    return matches
+
 	def split(self, string):
-		return list(string)
+		return self.spliteKeyWord(string)
 		# return " ".join(jieba.cut(word,HMM=True)).split(" ")
 
 
