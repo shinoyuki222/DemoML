@@ -9,7 +9,166 @@ import torch
 
 from pytorch_pretrained_bert import BertTokenizer
 
-import utils
+from utils import *
+
+# class Dictionary(object):
+#     def __init__(self):
+#         self.word2idx = {
+#             WORD[PAD]: PAD,
+#             WORD[UNK]: UNK,
+#             WORD[BOS]: BOS,
+#             WORD[EOS]: EOS
+#         }
+#         self.word2count = {}
+#         self.idx = len(self.word2idx)
+
+#     def addSents(self, sentences):
+#         for sent in sentences:
+#             for word in sent.split(' '):
+#                 self.addWord(word)
+
+#     def addWord(self, word):
+#         if word not in self.word2count:
+#             self.word2count[word] = 1
+#         else:
+#             self.word2count[word] += 1
+
+#     def add2Dict(self, word):
+#         self.word2idx[word] = self.idx
+#         self.idx += 1
+
+#     def __len__(self):
+#         assert self.idx == len(self.word2idx)
+#         return self.idx
+
+#     def __call__(self, sentences, min_count=1):
+#         self.addSents(sentences)
+#         for k,v in self.word2count.items():
+#             if v >= min_count:
+#                 self.add2Dict(k)
+
+class Dict_lbl(object):
+    def __init__(self):
+        self.word2idx = {}
+        self.word2count = {}
+        self.idx = len(self.word2idx)
+
+    def addSents(self, sentences):
+        for sent in sentences:
+            for word in sent.split(' '):
+                self.addWord(word)
+
+    def addWord(self, word):
+        if word not in self.word2count:
+            self.word2count[word] = 1
+        else:
+            self.word2count[word] += 1
+
+    def add2Dict(self, word):
+        self.word2idx[word] = self.idx
+        self.idx += 1
+
+    def __len__(self):
+        assert self.idx == len(self.word2idx)
+        return self.idx
+
+    def __call__(self, sentences):
+        self.addSents(sentences)
+        for k,v in self.word2count.items():
+            self.add2Dict(k)
+
+class Dict_clsf(object):
+    def __init__(self):
+        self.word2idx = {}
+        self.word2count = {}
+        self.idx = len(self.word2idx)
+
+    def addSents(self, sentences):
+        for sent in sentences:
+            self.addWord(sent)
+
+    def addWord(self, word):
+        if word not in self.word2count:
+            self.word2count[word] = 1
+        else:
+            self.word2count[word] += 1
+
+    def add2Dict(self, word):
+        self.word2idx[word] = self.idx
+        self.idx += 1
+
+    def __len__(self):
+        assert self.idx == len(self.word2idx)
+        return self.idx
+
+    def __call__(self, sentences):
+        self.addSents(sentences)
+        for k,v in self.word2count.items():
+            self.add2Dict(k)
+
+class Corpus(object):
+    def __init__(self, corpus, save_dir, min_count=1, train = 1):
+        self.corpus = corpus
+        # self.dict = Dictionary()
+        self.dict_clsf = Dict_clsf()
+        self.dict_lbl = Dict_lbl()
+        self.sents = []
+        self.clss = []
+        self.lbls = []
+        self.min_count=1
+        self.save_dir = save_dir
+        self.max_len = 0
+        if train:
+            self.parse()
+            self.save()
+
+
+    def parse(self):
+        lines = open(self.corpus, encoding='utf-8').read().strip().split('\n')
+
+        for line in lines:
+            segs = line.split('\t')
+            if len(segs)<3:
+                continue
+            cls = segs[0]
+            sent = segs[1]
+            lbl = segs[2]
+            sent = textprocess(sent)
+            if len(sent.split(' ')) == len(lbl.split(' ')):
+                self.sents.append(''.join(sent.split(' ')))
+                self.clss.append(cls)
+                self.lbls.append(lbl)
+                self.max_len = max(self.max_len, len(sent.split(' ')))
+
+        # self.dict(self.sents)
+        self.dict_clsf(self.clss)
+        self.dict_lbl(self.lbls)
+
+    def save(self):
+
+        # save_obj(self.dict.word2idx, self.save_dir + "dict.json")
+        save_obj(self.dict_clsf.word2idx, self.save_dir + "dict_clsf.json")
+        save_obj(self.dict_lbl.word2idx, self.save_dir + "dict_lbl.json")
+        # torch.save(self.pre_w2v, self.save_dir + 'pre_w2v')
+        
+        print("There are {0} examples".format(len(self.sents)),flush=True)
+
+        save_obj(self.sents, self.save_dir + "DataSentence.txt")
+        save_obj(self.clss, self.save_dir + "DataClass.txt")
+        save_obj(self.lbls, self.save_dir + "DataLabels.txt")
+
+        print('Data saved.', flush=True)
+
+        config = {}
+        # config['num_word'] = len(self.dict.word2idx)
+        config['num_label'] = len(self.dict_lbl.word2idx)
+        config['num_class'] = len(self.dict_clsf.word2idx)
+        config['num_train'] = len(self.sents)
+        config['max_len'] = self.max_len
+
+        save_obj(config, self.save_dir + 'Config.json')
+
+
 
 class DataLoader(object):
     def __init__(self, data_dir, bert_model_dir, params, token_pad_idx=0):
@@ -20,18 +179,19 @@ class DataLoader(object):
         self.seed = params.seed
         self.token_pad_idx = 0
 
-        tags = self.load_tags()
+        # self.parse()
+        tags = load_obj(self.data_dir + "dict_lbl.json")
         self.tag2idx = {tag: idx for idx, tag in enumerate(tags)}
         self.idx2tag = {idx: tag for idx, tag in enumerate(tags)}
         params.tag2idx = self.tag2idx
         params.idx2tag = self.idx2tag
-        self.tag_pad_idx = self.tag2idx['O']
+        self.tag_pad_idx = self.tag2idx["O"]
 
         self.tokenizer = BertTokenizer.from_pretrained(bert_model_dir, do_lower_case=True)
 
     def load_tags(self):
         tags = []
-        file_path = os.path.join(self.data_dir, 'tags.txt')
+        file_path = os.path.join(self.data_dir, 'dict_lbl.json')
         with open(file_path, 'r',encoding='utf-8') as file:
             for tag in file:
                 tags.append(tag.strip())
@@ -47,6 +207,7 @@ class DataLoader(object):
         with open(sentences_file, 'r', encoding="utf8") as file:
             for line in file:
                 # replace each token by its index
+                print(self.tokenizer)
                 tokens = self.tokenizer.tokenize(line.strip())
                 sentences.append(self.tokenizer.convert_tokens_to_ids(tokens))
         
@@ -77,8 +238,8 @@ class DataLoader(object):
         data = {}
         
         if data_type in ['train', 'dev', 'test']:
-            sentences_file = os.path.join(self.data_dir, data_type, 'sentences.txt')
-            tags_path = os.path.join(self.data_dir, data_type, 'tags.txt')
+            sentences_file = os.path.join(self.data_dir, 'DataSentence.txt')
+            tags_path = os.path.join(self.data_dir, 'DataLabels.txt')
             self.load_sentences_tags(sentences_file, tags_path, data)
         else:
             raise ValueError("data type not in ['train', 'dev', 'test']")

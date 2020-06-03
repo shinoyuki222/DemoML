@@ -2,10 +2,37 @@ import json
 import logging
 import os
 import shutil
-
+import unicodedata
 import torch
 import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def check_dir(path):
+    return os.path.exists(path)
+
+def remove_old_file(path):
+    if check_dir(path):
+        os.remove(path)
+
+def save_obj(obj, filename):
+    remove_old_file(filename)
+    json.dump(obj, open(filename, 'w', encoding="utf8"), ensure_ascii=False)
+
+def load_obj(filename):
+    obj = json.load(open(filename, 'r', encoding="utf8"))
+    return obj
+
+def unicodeToAscii(s):
+    return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    
+def textprocess(s):
+    s = unicodeToAscii(s)
+    # s = filter(s)
+    return s
+
+
+
+
 
 class Params():
     """Class that loads hyperparameters from a json file.

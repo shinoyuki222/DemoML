@@ -26,7 +26,6 @@ def split_data(data, test_size=0.33):
 def train_iter(model, dl_train, optimizer, criterion_clsf = nn.CrossEntropyLoss().to(device), criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)):
     model.train()
     loss_epoch = 0
-
     for enc, tgt, cls in tqdm(dl_train[:], mininterval=1, desc='Generator Train Processing', leave=False):
         optimizer.zero_grad()
         enc = enc.to(device)
@@ -42,6 +41,8 @@ def train_iter(model, dl_train, optimizer, criterion_clsf = nn.CrossEntropyLoss(
         loss = loss_tgt + loss_clsf
         loss_epoch+=loss
         loss.backward()
+        nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=0.25)
+        # nn.utils.clip_grad_norm(model.parameters(), max_norm=0.25)
         optimizer.step()
     return loss_epoch/len(dl_train)
 

@@ -144,12 +144,14 @@ class Encoder(nn.Module):
 
         self.fc = nn.Linear(pre_w2v.size(1), d_model)
 
-        self.pos_emb = nn.Embedding(src_vocab_size, d_model)
-        # self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
+        # self.pos_emb = nn.Embedding(src_vocab_size, d_model)
+        self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(src_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
 
     def forward(self, enc_inputs): # enc_inputs : (batch_size, source_len)
-        enc_outputs = self.fc(self.src_emb(enc_inputs))  + self.pos_emb(enc_inputs)
+        enc_outputs = self.fc(self.src_emb(enc_inputs))  + self.pos_emb(torch.LongTensor(range(src_len+1)).to(device))
+        # print(self.pos_emb.weight.size())
+        # print(self.src_emb.weight.size())
         enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
         enc_self_attns = []
         for layer in self.layers:
@@ -214,6 +216,9 @@ class Transformer_Mix(nn.Module):
         h_pooled = self.activ(self.fc(enc_outputs[:, 0]))
         logits_clsf = self.classifier(h_pooled)
 
+        # print("enc_outputs\n",enc_outputs[0]-enc_outputs[1])
+        # print("h_pooled\n",h_pooled[0]-h_pooled[1])
+        # print("logits_clsf\n",logits_clsf[0]-logits_clsf[1])
         mask_tgt = ~enc_self_attn_mask[:,0,:].unsqueeze(2) # [batch_size, maxlen, d_model]
 
         h_masked = enc_outputs * mask_tgt # masking position [batch_size, len, d_model]
