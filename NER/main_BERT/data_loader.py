@@ -8,6 +8,7 @@ import sys
 import torch
 
 from pytorch_pretrained_bert import BertTokenizer
+from sklearn.model_selection import train_test_split
 
 from utils import *
 
@@ -135,7 +136,7 @@ class Corpus(object):
             lbl = segs[2]
             sent = textprocess(sent)
             if len(sent.split(' ')) == len(lbl.split(' ')):
-                self.sents.append(''.join(sent.split(' ')))
+                self.sents.append(sent)
                 self.clss.append(cls)
                 self.lbls.append(lbl)
                 self.max_len = max(self.max_len, len(sent.split(' ')))
@@ -143,6 +144,10 @@ class Corpus(object):
         # self.dict(self.sents)
         self.dict_clsf(self.clss)
         self.dict_lbl(self.lbls)
+
+    def split_data(self, test_size=0.33):
+        sents_train, sents_test, lbls_train, lbls_test, clss_train, clss_test =train_test_split(self.sents,self.lbls,self.clss, test_size=test_size, random_state=42)
+        return sents_train, lbls_train, clss_train, sents_test, lbls_test, clss_test
 
     def save(self):
 
@@ -153,11 +158,39 @@ class Corpus(object):
         
         print("There are {0} examples".format(len(self.sents)),flush=True)
 
+        if not check_dir(self.save_dir):
+            os.mkdir(self.save_dir)
+
         save_obj(self.sents, self.save_dir + "DataSentence.txt")
         save_obj(self.clss, self.save_dir + "DataClass.txt")
         save_obj(self.lbls, self.save_dir + "DataLabels.txt")
 
+        sents_train, lbls_train, clss_train, sents_test, lbls_test, clss_test = self.split_data()
+
+        if not check_dir(self.save_dir+'train'):
+            os.mkdir(self.save_dir+'train')
+        if not check_dir(self.save_dir+'eval'):
+            os.mkdir(self.save_dir+'eval')
+
+        sentences_file = os.path.join(self.save_dir, 'train','DataSentence.txt')
+        tags_path = os.path.join(self.save_dir, 'train','DataLabels.txt')
+        clss_path = os.path.join(self.save_dir, 'train','DataClass.txt')
+
+        save_obj(sents_train, sentences_file)
+        save_obj(lbls_train, tags_path)
+        save_obj(clss_train, clss_path)
+
+        sentences_file = os.path.join(self.save_dir, 'eval', 'DataSentence.txt')
+        tags_path = os.path.join(self.save_dir, 'eval', 'DataLabels.txt')
+        clss_path = os.path.join(self.save_dir, 'eval', 'DataClass.txt')
+
+        save_obj(sents_test, sentences_file)
+        save_obj(lbls_test, tags_path)
+        save_obj(clss_test, clss_path)
+
         print('Data saved.', flush=True)
+
+
 
         config = {}
         # config['num_word'] = len(self.dict.word2idx)
@@ -180,7 +213,7 @@ class DataLoader(object):
         self.token_pad_idx = 0
 
         # self.parse()
-        tags = load_obj(self.data_dir + "dict_lbl.json")
+        tags = self.load_tags()
         self.tag2idx = {tag: idx for idx, tag in enumerate(tags)}
         self.idx2tag = {idx: tag for idx, tag in enumerate(tags)}
         params.tag2idx = self.tag2idx
@@ -190,11 +223,12 @@ class DataLoader(object):
         self.tokenizer = BertTokenizer.from_pretrained(bert_model_dir, do_lower_case=True)
 
     def load_tags(self):
-        tags = []
-        file_path = os.path.join(self.data_dir, 'dict_lbl.json')
-        with open(file_path, 'r',encoding='utf-8') as file:
-            for tag in file:
-                tags.append(tag.strip())
+        # tags = []
+        # file_path = os.path.join(self.data_dir, 'dict_lbl.json')
+        # with open(file_path, 'r',encoding='utf-8') as file:
+        #     for tag in file:
+        #         tags.append(tag.strip())
+        tags = load_obj(self.data_dir + "dict_lbl.json")
         return tags
 
     def load_sentences_tags(self, sentences_file, tags_file, d):
@@ -204,18 +238,17 @@ class DataLoader(object):
         sentences = []
         tags = []
 
-        with open(sentences_file, 'r', encoding="utf8") as file:
-            for line in file:
-                # replace each token by its index
-                print(self.tokenizer)
-                tokens = self.tokenizer.tokenize(line.strip())
-                sentences.append(self.tokenizer.convert_tokens_to_ids(tokens))
+        file = load_obj(sentences_file)
+        for line in file:
+            # replace each token by its index
+            tokens = self.tokenizer.tokenize(line.strip())
+            sentences.append(self.tokenizer.convert_tokens_to_ids(tokens))
         
-        with open(tags_file, 'r', encoding="utf8") as file:
-            for line in file:
-                # replace each tag by its index
-                tag_seq = [self.tag2idx.get(tag) for tag in line.strip().split(' ')]
-                tags.append(tag_seq)
+        file = load_obj(tags_file)
+        for line in file:
+            # replace each tag by its index
+            tag_seq = [self.tag2idx.get(tag) for tag in line.strip().split(' ')]
+            tags.append(tag_seq)
 
         # checks to ensure there is a tag for each token
         assert len(sentences) == len(tags)
@@ -238,8 +271,8 @@ class DataLoader(object):
         data = {}
         
         if data_type in ['train', 'dev', 'test']:
-            sentences_file = os.path.join(self.data_dir, 'DataSentence.txt')
-            tags_path = os.path.join(self.data_dir, 'DataLabels.txt')
+            sentences_file = os.path.join(self.data_dir,data_type,'DataSentence.txt')
+            tags_path = os.path.join(self.data_dir, data_type,'DataLabels.txt')
             self.load_sentences_tags(sentences_file, tags_path, data)
         else:
             raise ValueError("data type not in ['train', 'dev', 'test']")

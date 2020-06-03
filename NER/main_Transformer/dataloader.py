@@ -15,6 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
+
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {
@@ -172,7 +173,7 @@ class Corpus(object):
             if word in w2c_dict:
                 self.pre_w2v[idx] = np.asarray(w2c_dict[word])
 
-
+    
     def save(self):
 
         save_obj(self.dict.word2idx, self.save_dir + "dict.json")
@@ -185,6 +186,8 @@ class Corpus(object):
         save_obj(self.sents, self.save_dir + "DataSentence.txt")
         save_obj(self.clss, self.save_dir + "DataClass.txt")
         save_obj(self.lbls, self.save_dir + "DataLabels.txt")
+
+
 
         print('Data saved.', flush=True)
 
@@ -294,6 +297,7 @@ class DataLoader(object):
 
             self.ds_loader.append((sent_batch, lbls_batch, clss_batch))
         return self.ds_loader
+
 
 
     def update_config(self):
