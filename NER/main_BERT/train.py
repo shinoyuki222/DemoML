@@ -13,17 +13,12 @@ from tqdm import trange
 
 from pytorch_pretrained_bert import BertForTokenClassification
 
-from data_loader import DataLoader
+from data_loader import DataLoader, Corpus
 from evaluate import evaluate
 import utils
 
 
 
-from sklearn.model_selection import train_test_split
-
-def split_data(data, test_size=0.33):
-    dl_train, dl_test =train_test_split(data, test_size=test_size, random_state=42)
-    return dl_train, dl_test
 
 
 def train(model, data_iterator, optimizer, scheduler, params):
@@ -37,13 +32,13 @@ def train(model, data_iterator, optimizer, scheduler, params):
     
     # Use tqdm for progress bar
     t = trange(params.train_steps)
-    for enc, tgt, cls in tqdm(data_iterator, mininterval=1, desc='Generator Train Processing', leave=False):
+    for i in t:
         # fetch the next training batch
-
-        batch_masks = enc.gt(0)
+        batch_data, batch_tags = next(data_iterator)
+        batch_masks = batch_data.gt(0)
 
         # compute model output and loss
-        loss = model(enc, token_type_ids=None, attention_mask=batch_masks, labels=tgt)
+        loss = model(batch_data, token_type_ids=None, attention_mask=batch_masks, labels=batch_tags)
 
         if params.n_gpu > 1 and args.multi_gpu:
             loss = loss.mean()  # mean() to average on multi-gpu
@@ -62,9 +57,8 @@ def train(model, data_iterator, optimizer, scheduler, params):
         optimizer.step()
 
         # update the average loss
-        print("loss_train = {}".format(loss))
-        # loss_avg.update(loss.item())
-        # t.set_postfix(loss='{:05.3f}'.format(loss_avg()))
+        loss_avg.update(loss.item())
+        t.set_postfix(loss='{:05.3f}'.format(loss_avg()))
     
 
 def train_and_evaluate(model, train_data, val_data, optimizer, scheduler, params, model_dir, restore_file=None):
@@ -131,10 +125,10 @@ def train_and_evaluate(model, train_data, val_data, optimizer, scheduler, params
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default='..\\NER_data\\MSRA', help="Directory containing the dataset")
+    parser.add_argument('--data_dir', default='./data/', help="Directory containing the dataset")
     parser.add_argument('--bert_model_dir', default='bert-base-chinese-pytorch',
                         help="Directory containing the BERT model in PyTorch")
-    parser.add_argument('--model_dir', default='experiments\\base_model', help="Directory containing params.json")
+    parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
     parser.add_argument('--seed', type=int, default=2019, help="random seed for initialization")
     parser.add_argument('--restore_file', default=None,
                         help="Optional, name of the file in --model_dir containing weights to reload before training")
@@ -149,8 +143,6 @@ if __name__ == '__main__':
 
     parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
                         help='path to corpus data')
-    parser.add_argument('--save-dir', type=str, default='./data/',
-                        help='path to save processed data')
 
     args = parser.parse_args()
 
@@ -179,17 +171,16 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
     
     # Initialize the DataLoader
-    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
-    data_loader = DataLoader(args.save_dir)()
+    corpus = Corpus(args.corpus_data, args.data_dir)
+    data_loader = DataLoader(args.data_dir, args.bert_model_dir, params, token_pad_idx=0)
     
     # Load training data and test data
-    train_data, val_data = train_test_split(data_loader)
     train_data = data_loader.load_data('train')
     val_data = data_loader.load_data('dev')
 
     # Specify the training and validation dataset sizes
-    params.train_size = train_data.size(0)
-    params.val_size = val_data.size(0)
+    params.train_size = train_data['size']
+    params.val_size = val_data['size']
 
     # Prepare model
     # model = BertPreTrainedModel.from_pretrained(args.bert_model_dir, num_labels=len(params.tag2idx)))
