@@ -135,7 +135,7 @@ if __name__ == '__main__':
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
-    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.pyt'.format("Transformer_NER")),map_location=torch.device(device))
+    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.pyt'.format("Transformer_NER_best")),map_location=torch.device(device))
     model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
     model.load_state_dict (model_ckpt['model'])
 
