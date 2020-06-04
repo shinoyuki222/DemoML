@@ -15,7 +15,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
-
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {
@@ -58,6 +57,7 @@ class Dict_lbl(object):
             WORD[PAD]: PAD
         }
         self.word2count = {}
+        self.idx2word = {}
         self.idx = len(self.word2idx)
 
     def addSents(self, sentences):
@@ -83,6 +83,8 @@ class Dict_lbl(object):
         self.addSents(sentences)
         for k,v in self.word2count.items():
             self.add2Dict(k)
+        for k,v in self.word2idx.items():
+            self.idx2word[v] = k
 
 class Dict_clsf(object):
     def __init__(self):
@@ -173,12 +175,14 @@ class Corpus(object):
             if word in w2c_dict:
                 self.pre_w2v[idx] = np.asarray(w2c_dict[word])
 
-    
+
     def save(self):
 
         save_obj(self.dict.word2idx, self.save_dir + "dict.json")
         save_obj(self.dict_clsf.word2idx, self.save_dir + "dict_clsf.json")
         save_obj(self.dict_lbl.word2idx, self.save_dir + "dict_lbl.json")
+        save_obj(self.dict_lbl.idx2word, self.save_dir + "idx2lbl.json")
+        
         torch.save(self.pre_w2v, self.save_dir + 'pre_w2v')
         
         print("There are {0} examples".format(len(self.sents)),flush=True)
@@ -186,8 +190,6 @@ class Corpus(object):
         save_obj(self.sents, self.save_dir + "DataSentence.txt")
         save_obj(self.clss, self.save_dir + "DataClass.txt")
         save_obj(self.lbls, self.save_dir + "DataLabels.txt")
-
-
 
         print('Data saved.', flush=True)
 
@@ -299,7 +301,6 @@ class DataLoader(object):
         return self.ds_loader
 
 
-
     def update_config(self):
         return 
         # self.config['max_len'] = self.max_len
@@ -307,7 +308,7 @@ class DataLoader(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transformer NER')
-    parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
+    parser.add_argument('--corpus-data', type=str, default='../data/data.txt',
                         help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')

@@ -11,8 +11,8 @@ WORD = {
 }
 
 
-d_model = 512  # Embedding Size
-d_ff = 2048 # FeedForward dimension
+d_model = 128  # Embedding Size
+d_ff = 1024 # FeedForward dimension
 d_k = d_v = 64  # dimension of K(=Q), V
-n_layers = 6  # number of Encoder of Decoder Layer
-n_heads = 4  # number of heads in Multi-Head Attention
+n_layers = 3  # number of Encoder of Decoder Layer
+n_heads = 2  # number of heads in Multi-Head Attention

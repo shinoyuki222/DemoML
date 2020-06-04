@@ -26,6 +26,7 @@ def split_data(data, test_size=0.33):
 def train_iter(model, dl_train, optimizer, criterion_clsf = nn.CrossEntropyLoss().to(device), criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)):
     model.train()
     loss_epoch = 0
+
     for enc, tgt, cls in tqdm(dl_train[:], mininterval=1, desc='Generator Train Processing', leave=False):
         optimizer.zero_grad()
         enc = enc.to(device)
@@ -41,45 +42,51 @@ def train_iter(model, dl_train, optimizer, criterion_clsf = nn.CrossEntropyLoss(
         loss = loss_tgt + loss_clsf
         loss_epoch+=loss
         loss.backward()
-        nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=0.25)
-        # nn.utils.clip_grad_norm(model.parameters(), max_norm=0.25)
+        # nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=0.25)
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.25)
         optimizer.step()
+        # flag += 1
+        # if flag >2:
+        #     break 
     return loss_epoch/len(dl_train)
 
 if __name__ == '__main__':
 
     print('device = ', device, flush=True)
     parser = argparse.ArgumentParser(description='Transformer NER')
-    parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
+    parser.add_argument('--corpus-data', type=str, default='../data/data.txt',
                         help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
+    
+    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     config = load_obj(args.save_dir+'Config.json')
     cls_size = config['num_class']
     tgt_size = config['num_label']
-    
-    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     dl = DataLoader(args.save_dir, batch_size = 256)()
     dl_train, dl_test = split_data(dl)
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
-    model =Transformer_Mix(cls_size, tgt_size,pre_w2v).to(device)
+    model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
     criterion_clsf = nn.CrossEntropyLoss().to(device)
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+    
+    idx2lbl = load_obj(args.save_dir+'idx2lbl.json')
+
     for epoch in range(20):
         loss_epoch = train_iter(model, dl_train[:], optimizer, criterion_clsf, criterion_tgt)
 
-        loss_epoch_test, f1_clsf, f1_tgt = evaluate_f1(model, dl_test[:])
+        loss_epoch_test, f1_clsf, f1_tgt, f1_slot_merged = evaluate_f1(model, dl_test[:], idx2lbl)
 
         torch.save({
         'model': model.state_dict(),
         'model_opt': optimizer.state_dict()}, os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")))
 
-        print('Epoch:{0} , train_cost = {1:4f}, test_cost = {2:4f}, f1_intent = {3:4f}, f1_slot = {4:4f}'.format(epoch + 1, loss_epoch, loss_epoch_test, f1_clsf, f1_tgt), flush=True)        
+        print('Epoch:{0} , train_cost = {1:4f}, test_cost = {2:4f}, f1_intent = {3:4f}, f1_slot = {4:4f}, f1_slot_merged = {3:4f}'.format(epoch + 1, loss_epoch, loss_epoch_test, f1_clsf, f1_tgt, f1_slot_merged), flush=True)        

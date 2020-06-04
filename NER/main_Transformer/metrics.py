@@ -114,7 +114,7 @@ def start_of_chunk(prev_tag, tag, prev_type, type_):
     return chunk_start
 
 
-def f1_score(y_true, y_pred, average='micro', digits=2, suffix=False):
+def f1_score_merged(y_true, y_pred, average='micro', digits=2, suffix=False):
     """Compute the F1 score.
 
     The F1 score can be interpreted as a weighted average of the precision and
