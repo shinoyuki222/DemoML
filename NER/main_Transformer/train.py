@@ -79,6 +79,7 @@ if __name__ == '__main__':
 
     
     idx2lbl = load_obj(args.save_dir+'idx2lbl.json')
+    best_f1 = 0
 
     for epoch in range(20):
         loss_epoch = train_iter(model, dl_train[:], optimizer, criterion_clsf, criterion_tgt)
@@ -87,6 +88,11 @@ if __name__ == '__main__':
 
         torch.save({
         'model': model.state_dict(),
-        'model_opt': optimizer.state_dict()}, os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")))
+        'model_opt': optimizer.state_dict()}, os.path.join(args.save_dir, '{0}_{1}.pyt'.format("Transformer_NER", epoch)))
+
+        if f1_slot_merged > best_f1:
+            torch.save({
+            'model': model.state_dict(),
+            'model_opt': optimizer.state_dict()}, os.path.join(args.save_dir, '{0}.pyt'.format("Transformer_NER_best")))
 
         print('Epoch:{0} , train_cost = {1:4f}, test_cost = {2:4f}, f1_intent = {3:4f}, f1_slot = {4:4f}, f1_slot_merged = {3:4f}'.format(epoch + 1, loss_epoch, loss_epoch_test, f1_clsf, f1_tgt, f1_slot_merged), flush=True)        

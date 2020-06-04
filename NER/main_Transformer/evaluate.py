@@ -225,7 +225,7 @@ if __name__ == '__main__':
     pre_w2v = torch.Tensor(pre_w2v).to(device)
     
 
-    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")),map_location=torch.device(device))
+    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.pyt'.format("Transformer_NER")),map_location=torch.device(device))
     model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
     model.load_state_dict (model_ckpt['model'])
     optimizer = optim.Adam(model.parameters(), lr=0.01)
