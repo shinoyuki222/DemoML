@@ -84,7 +84,7 @@ if __name__ == '__main__':
     for epoch in range(20):
         loss_epoch = train_iter(model, dl_train[:], optimizer, criterion_clsf, criterion_tgt)
 
-        loss_epoch_test, f1_clsf, f1_tgt, f1_slot_merged = evaluate_f1(model, dl_test[:], idx2lbl)
+        loss_epoch_test, f1_clsf, f1_tgt, f1_slot_merged = evaluate_f1(model, dl_test[:], args.save_dir)
 
         torch.save({
         'model': model.state_dict(),
