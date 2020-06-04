@@ -60,19 +60,19 @@ if __name__ == '__main__':
                         help='path to save processed data')
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
-    
-    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     config = load_obj(args.save_dir+'Config.json')
     cls_size = config['num_class']
     tgt_size = config['num_label']
+    
+    corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     dl = DataLoader(args.save_dir, batch_size = 256)()
     dl_train, dl_test = split_data(dl)
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
-    model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
+    model =Transformer_Mix(cls_size, tgt_size,pre_w2v).to(device)
     criterion_clsf = nn.CrossEntropyLoss().to(device)
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)

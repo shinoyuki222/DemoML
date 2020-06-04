@@ -24,6 +24,7 @@ class Dictionary(object):
             WORD[EOS]: EOS
         }
         self.word2count = {}
+        self.idx2word = {}
         self.idx = len(self.word2idx)
 
     def addSents(self, sentences):
@@ -50,6 +51,8 @@ class Dictionary(object):
         for k,v in self.word2count.items():
             if v >= min_count:
                 self.add2Dict(k)
+        for k,v in self.word2idx.items():
+            self.idx2word[v] = k
 
 class Dict_lbl(object):
     def __init__(self):
@@ -90,6 +93,7 @@ class Dict_clsf(object):
     def __init__(self):
         self.word2idx = {}
         self.word2count = {}
+        self.idx2word = {}
         self.idx = len(self.word2idx)
 
     def addSents(self, sentences):
@@ -114,6 +118,8 @@ class Dict_clsf(object):
         self.addSents(sentences)
         for k,v in self.word2count.items():
             self.add2Dict(k)
+        for k,v in self.word2idx.items():
+            self.idx2word[v] = k
 
 class Corpus(object):
     def __init__(self, corpus, w2v_file, save_dir, min_count=1, train = 1):
@@ -124,6 +130,7 @@ class Corpus(object):
         self.sents = []
         self.clss = []
         self.lbls = []
+        self.lbl_mask = {}
         self.w2v_file = w2v_file
         self.min_count=1
         self.save_dir = save_dir
@@ -150,6 +157,10 @@ class Corpus(object):
                 self.clss.append(cls)
                 self.lbls.append(lbl)
                 self.max_len = max(self.max_len, len(sent.split(' ')))
+                if cls in self.lbl_mask:
+                     self.lbl_mask[cls] = list(set(self.lbl_mask[cls] + lbl.split(' ')))
+                else:
+                    self.lbl_mask[cls] = list(set(lbl.split(' ')))
 
         self.dict(self.sents)
         self.dict_clsf(self.clss)
@@ -181,7 +192,11 @@ class Corpus(object):
         save_obj(self.dict.word2idx, self.save_dir + "dict.json")
         save_obj(self.dict_clsf.word2idx, self.save_dir + "dict_clsf.json")
         save_obj(self.dict_lbl.word2idx, self.save_dir + "dict_lbl.json")
+        save_obj(self.dict.idx2word, self.save_dir + "idx2word.json")
+        save_obj(self.dict_clsf.idx2word, self.save_dir + "idx2cls.json")
         save_obj(self.dict_lbl.idx2word, self.save_dir + "idx2lbl.json")
+        save_obj(self.lbl_mask, self.save_dir + "lbl_mask.json")
+        
         
         torch.save(self.pre_w2v, self.save_dir + 'pre_w2v')
         
@@ -235,7 +250,7 @@ class DataLoader(object):
     def __call__(self):
         opt = self.gen_data()
         self.update_config()
-        return self.gen_data()
+        return opt
 
     # def _shuffle(self):
     #     indices = np.arange(len(self.sents))

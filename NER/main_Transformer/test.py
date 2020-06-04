@@ -5,9 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
-import torch.optim as optim
-from tqdm import tqdm
 
+from utils import split, textprocess
 import os
 from metrics import f1_score_merged
 from metrics import classification_report
@@ -15,90 +14,108 @@ from metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 from dataloader import DataLoader, Corpus, load_obj
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from model import Transformer_Mix, get_attn_pad_mask
 
-def split_data(data, test_size=0.33):
-    dl_train, dl_test =train_test_split(data, test_size=test_size, random_state=42)
-    return dl_train, dl_test
-    # idx = len(data)*(1-test_size)
-    # return data[:idx], data[idx:]
+from metrics import get_entities
 
-def evaluate_f1(model, dl_test, idx2lbl, criterion_clsf = nn.CrossEntropyLoss().to(device), criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device), verbose = False):
-    loss_test = 0
-    pred_tags = []
-    true_tags = []
+from evaluate import load_mask, softmax_mask
 
-    pred_clss = []
-    true_clss = []
-    criterion_clsf = criterion_clsf
-    criterion_tgt = criterion_tgt
 
-    for enc, tgt, cls in dl_test[:]:
-        model.eval()
-        with torch.no_grad():
-            enc = enc.to(device)
-            tgt = tgt.to(device)
-            cls = cls.to(device)
-            enc_self_attn_mask = get_attn_pad_mask(enc, enc)
-            enc_self_attn_mask.to(device)
 
-            logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
-            loss_tgt = criterion_tgt(logits_tgt.transpose(1, 2), tgt) # for masked LM
-            loss_tgt = (loss_tgt.float()).mean()
-            loss_clsf = criterion_clsf(logits_clsf, cls)# for sentence classification
-            loss = loss_clsf + loss_tgt
-            # loss = loss_clsf
-            loss_test+=loss
+class DataLoader_test(object):
+    def __init__(self, save_dir):
+        self.save_dir = save_dir
+        self.word2idx = load_obj(self.save_dir + "dict.json")
+        self.config = load_obj(self.save_dir + "Config.json")
+        self.max_len = self.config["max_len"]
 
-        pad_mask = enc.data.eq(0).sum(axis = 1)
+    def load_sentences(self, sent):
+        """Loads sentences and tags from their corresponding files.
+            Maps tokens and tags to their indices and stores them in the provided dict d.
+        """
+        sentence = []
 
-        score_tgt, tgt_idx = torch.max(logits_tgt,dim = -1)
-        score_cls, cls_idx = torch.max(logits_clsf, dim = -1)
+        tokens = split(textprocess(sent))
+        sentence.append(self.convert_tokens_to_ids(tokens))
+        # print(tokens)
+        return tokens, torch.tensor(sentence, dtype=torch.long)
 
-        for pre, true, pad_num in zip(tgt_idx, tgt, pad_mask):
-            pred_tags += pre[1:-pad_num].data.tolist()
-            true_tags += true[1:-pad_num].data.tolist()
+    def convert_tokens_to_ids(self, tokens):
+        sentence = []
+        assert BOS == self.word2idx[WORD[BOS]]
+        assert UNK == self.word2idx[WORD[UNK]]
 
-        # print(cls_idx.size())
-        pred_clss += cls_idx.tolist()
-        true_clss += cls.tolist()
-        # print(len(pred_tags), len(true_tags))
-        # print(pred_tags)
-        # print(true_tags)
-        # print(len(pred_clss), len(true_clss))
-        # print(pred_clss)
+        sentence.append(self.word2idx[WORD[BOS]])
+        for tok in tokens:
+            if tok in self.word2idx:
+                sentence.append(self.word2idx[tok])
+            else:
+                sentence.append(self.word2idx[WORD[UNK]])
+        pad = [self.word2idx[WORD[PAD]]]*(self.max_len+1 - len(sentence))
 
-        # print(true_clss)
-        assert len(pred_tags) == len(true_tags)
-        assert len(pred_clss) == len(true_clss)
-    # print(pred_clss[-20:])
-    # print(true_clss[-20:])
-    # print(pred_tags[-20:])
-    # print(true_tags[-20:])
+        assert len(sentence + pad) == self.max_len+1
+        return sentence + pad
 
-    # print(enc[-20:])
+def test(model, sentence, save_dir, mark='Eval', verbose=False):
+    """Evaluate the model on `steps` batches."""
+    # set model to evaluation mode
+    model.eval()
+    
 
-    f1_tgt = f1_score(pred_tags, true_tags, average='micro')
-    f1_cls = f1_score(pred_clss, true_clss, average='micro')
 
-    # logging loss, f1 and report
+    idx2lbl = load_obj(save_dir + "idx2lbl.json")
+    idx2cls  = load_obj(save_dir + "idx2cls.json")
+    
+    enc = sentence.to(device)
+    enc_self_attn_mask = get_attn_pad_mask(enc, enc)
+    enc_self_attn_mask.to(device)
 
-    metrics = {}
-    true_lbls = []
+    # get results from model
+    logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
+
+    # get sentence length
+    pad_num = enc.data.eq(0).sum(axis = 1)
+
+
+    score_cls, cls_idx = torch.max(logits_clsf, dim = -1)
+    pred_cls = cls_idx[0].data.tolist()
+
+
+
+    # get valid slot for a specific intent
+    idx_mask = load_mask(save_dir)
+
+
+    masked_logits_tgt= softmax_mask(logits_tgt, cls_idx, idx_mask)
+    score_tgt, tgt_idx = torch.max(masked_logits_tgt ,dim = -1)
+    
+
+    pred_tags = tgt_idx[0, 0:-pad_num].data.tolist()
+    
     pred_lbls = []
+    for idx in pred_tags:
+        pred_lbls.append(idx2lbl[str(idx)])
+    pred_cls = idx2cls[str(pred_cls)]
 
-    for t,p in zip(true_tags,pred_tags):
-        true_lbls.append(idx2lbl[str(t)])
-        pred_lbls.append(idx2lbl[str(p)])
+    
+    return pred_cls ,pred_lbls
 
-    f1_tgt_merged = f1_score_merged(true_lbls, pred_lbls)
-
-    if verbose:
-        report = classification_report(true_lbls, pred_lbls)
-        print(report, flush=True)
-
-    return loss_test/len(dl_test), f1_cls*100, f1_tgt*100, f1_tgt_merged
+def pretty_print(tokens, pred_lbls, pred_cls):
+    chunks = get_entities(pred_lbls)
+    slot_result = []
+    print('===================================', flush=True)
+    print('Intent\n\t', pred_cls, flush=True)
+    print('Slots', flush=True)
+    for chunk in chunks:
+        tag, start, end = chunk[0], chunk[1], chunk[2]
+        tok = ''.join(tokens[chunk[1]:chunk[2]+1])
+        string = '<{0}>: {1}'.format(tag, tok)
+        slot_result.append(string)
+    
+    print('\t'+'\n\t'.join(slot_result), flush=True)
+    print('===================================', flush=True)
 
 if __name__ == '__main__':
 
@@ -114,28 +131,54 @@ if __name__ == '__main__':
     config = load_obj(args.save_dir+'Config.json')
     cls_size = config['num_class']
     tgt_size = config['num_label']
-    # corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
-    dl = DataLoader(args.save_dir, batch_size = 128)()
-    dl_train, dl_test = train_test_split(dl, test_size=0.33)
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
-    idx2lbl = load_obj(args.save_dir+'idx2lbl.json')
 
-    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")))
+    model_ckpt = torch.load(os.path.join(args.save_dir, '{}.ptn'.format("Transformer_NER")),map_location=torch.device(device))
     model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
     model.load_state_dict (model_ckpt['model'])
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
-    optimizer.load_state_dict(model_ckpt['model_opt'])
 
-    loss_epoch_test = 0
-    pred_tags = []
-    true_tags = []
+    # Initialize the DataLoader
+    data_loader = DataLoader_test(args.save_dir)
 
-    criterion_clsf = nn.CrossEntropyLoss().to(device)
-    criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
+    print("Starting test...", flush=True)
+    print('Please add a space between English and Chinese', flush=True)
 
-    loss_epoch_test, f1_cls, f1_tgt, f1_tgt_merged = evaluate_f1(model, dl_test, idx2lbl, verbose=1)
-    print('test_cost = {0:6f}, f1_intent = {1:4f}, f1_slot = {2:4f}, f1_slot_merged = {3:4f}'.format(loss_epoch_test, f1_cls, f1_tgt, f1_tgt_merged), flush=True)
 
+    input_sentence = '导航到世纪大道一百一十八号'
+    # Check if it is quit case
+    if input_sentence == 'q' or input_sentence == 'quit': exit()
+    # Normalize sentence
+    tokens, test_data = data_loader.load_sentences(input_sentence)
+    # print(input_sentence)
+    # Evaluate sentence
+    pred_cls ,pred_lbls = test(model, test_data, args.save_dir, mark='Test', verbose=True)
+    # Format and print response sentence
+    # pred_tags[:] = [x for x in pred_tags if x != 'PAD']
+    print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
+    # print('intent:', pred_cls)
+    pretty_print(tokens, pred_lbls, pred_cls)
+    exit()
+
+    while(1):
+        try:
+            # Get input sentence
+            input_sentence = input('> ')
+            # input_sentence = '导航到世纪大道一百一十八号'
+            # Check if it is quit case
+            if input_sentence == 'q' or input_sentence == 'quit': break
+            # Normalize sentence
+            tokens, test_data = data_loader.load_sentences(input_sentence)
+            # print(input_sentence)
+            # Evaluate sentence
+            pred_cls ,pred_lbls = test(model, test_data, args.save_dir, mark='Test', verbose=True)
+            # Format and print response sentence
+            # pred_tags[:] = [x for x in pred_tags if x != 'PAD']
+            print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
+            # print('intent:', pred_cls)
+            pretty_print(tokens, pred_lbls, pred_cls)
+            # exit()
+        except KeyError:
+            print("Error: Encountered unknown word.")
         

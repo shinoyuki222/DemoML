@@ -6,3 +6,10 @@
 NER/main_BERT/chinese_L-12_H-768_A-12/*
 NER/main_BERT/bert-base-chinese-pytorch/*
 NER/data/cmn_CHN/*.txt
+NER/main_Transformer/data/*.txt
+NER/main_Transformer/data/*.json
+NER/main_BERT/data/*
+NER/data/*.txt
+NER/data/*.json
+NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
+NER/main_BERT/data/DataSentence.txt
