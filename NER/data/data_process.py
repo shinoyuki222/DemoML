@@ -32,7 +32,7 @@ class Data:
 		self.all_words = []
 		self.all_intents = []
 
-		# i = 0
+
 		for line in lines:
 			# i += 1
 			# if i%1000 ==0:
@@ -45,6 +45,7 @@ class Data:
 				sent = segs[1]
 			except:
 				continue
+
 			words = sent.split(' ')
 			sent = []
 			tag = []
@@ -66,7 +67,6 @@ class Data:
 					first = True  
 				elif (word[0] == '<' and word[1] == '/'):
 					cur_tag = 'unk'
-			
 			self.sents.append(sent)
 			self.tags.append(tag)
 			self.intents.append(intent)
@@ -96,5 +96,6 @@ if __name__ == '__main__':
 	domains = os.listdir(args.language)
 	for domain in domains:
 		domain = domain.split('.')[0]
+		print(domain)
 		data = Data(domain, args.language)
 		data.Raw_data()
