@@ -159,7 +159,7 @@ if __name__ == '__main__':
     print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
     # print('intent:', pred_cls)
     pretty_print(tokens, pred_lbls, pred_cls)
-    exit()
+    # exit()
 
     while(1):
         try:
