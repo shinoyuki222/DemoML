@@ -125,8 +125,8 @@ if __name__ == '__main__':
 		lines_less += readTopKLines(domain)
 		lines += readLines(domain)
 
-	saveLines(lines,'nav.txt')
-	saveLines(lines_less,'nav_less.txt')
+	saveLines(lines,'data.txt')
+	saveLines(lines_less,'data_less.txt')
 		# print(domain)
 		# data = Data(domain, args.language)
 		# data.Raw_data()
