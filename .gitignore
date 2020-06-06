@@ -13,3 +13,15 @@ NER/data/*.txt
 NER/data/*.json
 NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
 NER/main_BERT/data/DataSentence.txt
+BERT/BERT_Torch.ipynb
+BERT/BERT-Torch.py
+VAE_NLG/model/vae_nlg_inference_model.tar
+VAE_NLG/model/vae_nlg_full_model.tar
+VAE_NLG/data/w2v
+VAE_NLG/data/vae_nlg.pt
+VAE_NLG/data/poem
+Transformer/transformer_pre.py
+Transformer/Transformer(Greedy_decoder)-Torch.py
+NER/data/w2v
+NER/data/train/tags.txt
+NER/data/train/sentences.txt
