@@ -15,6 +15,7 @@ def get_attn_pad_mask(seq_q, seq_k):
     # eq(zero) is PAD token
     pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)  # (batch_size, 1, len_k/len_q) one is masking
     return pad_attn_mask.expand(batch_size, len_q, len_k)  # (batch_size, len_q, len_k)
+
 def get_attn_subsequent_mask(seq):
     attn_shape = [seq.size(0), seq.size(1), seq.size(1)]
     subsequent_mask = np.triu(np.ones(attn_shape), k=1)
@@ -131,6 +132,7 @@ class Encoder(nn.Module):
         for layer in self.layers:
             enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
             enc_self_attns.append(enc_self_attn)
+        # enc_self_attns (batch_size, n_layers, source_len, d_model)
         return enc_outputs, enc_self_attns
 
 class Decoder(nn.Module):
