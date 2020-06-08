@@ -46,7 +46,7 @@ class Dictionary(object):
         assert self.idx == len(self.word2idx)
         return self.idx
 
-    def __call__(self, sentences, min_count=1):
+    def __call__(self, sentences, min_count=MIN_COUNT):
         self.addSents(sentences)
         for k,v in self.word2count.items():
             if v >= min_count:
@@ -122,7 +122,7 @@ class Dict_clsf(object):
             self.idx2word[v] = k
 
 class Corpus(object):
-    def __init__(self, corpus, w2v_file, save_dir, min_count=1, train = 1):
+    def __init__(self, corpus, w2v_file, save_dir, min_count=1, train_dev = 1):
         self.corpus = corpus
         self.dict = Dictionary()
         self.dict_clsf = Dict_clsf()
@@ -135,10 +135,41 @@ class Corpus(object):
         self.min_count=1
         self.save_dir = save_dir
         self.max_len = 0
-        if train:
+        if train_dev:
             self.parse()
             self.load_w2v()
             self.save()
+        else:
+            self.parse_test()
+
+    def parse_test(self):
+        lines = open(self.corpus, encoding='utf-8').read().strip().split('\n')
+
+        for line in lines:
+            segs = line.split('\t')
+            if len(segs)<3:
+                continue
+            cls = segs[0]
+            sent = segs[1]
+            lbl = segs[2]
+            sent = textprocess(sent)
+            if len(sent.split(' ')) == len(lbl.split(' ')):
+                self.sents.append(sent)
+                self.clss.append(cls)
+                self.lbls.append(lbl)
+                self.max_len = max(self.max_len, len(sent.split(' ')))
+                if cls in self.lbl_mask:
+                     self.lbl_mask[cls] = list(set(self.lbl_mask[cls] + lbl.split(' ')))
+                else:
+                    self.lbl_mask[cls] = list(set(lbl.split(' ')))
+
+        print("There are {0} examples".format(len(self.sents)),flush=True)
+
+        save_obj(self.sents, self.save_dir + "TestDataSentence.txt")
+        save_obj(self.clss, self.save_dir + "TestDataClass.txt")
+        save_obj(self.lbls, self.save_dir + "TestDataLabels.txt")
+
+        print('Data saved.', flush=True)        
 
 
     def parse(self):
@@ -188,7 +219,7 @@ class Corpus(object):
 
 
     def save(self):
-
+        create_dir(self.save_dir)
         save_obj(self.dict.word2idx, self.save_dir + "dict.json")
         save_obj(self.dict_clsf.word2idx, self.save_dir + "dict_clsf.json")
         save_obj(self.dict_lbl.word2idx, self.save_dir + "dict_lbl.json")
@@ -222,16 +253,21 @@ class Corpus(object):
 
 
 class DataLoader(object):
-    def __init__(self, save_dir, batch_size=218):
+    def __init__(self, save_dir, batch_size=218, train_dev = 1):
         self.save_dir = save_dir
 
         self.dict = load_obj(self.save_dir + "dict.json")
         self.dict_clsf = load_obj(self.save_dir + "dict_clsf.json")
         self.dict_lbl = load_obj(self.save_dir + "dict_lbl.json")
+        if train_dev:
+            self.sents = load_obj(self.save_dir + "DataSentence.txt")
+            self.clss = load_obj(self.save_dir + "DataClass.txt")
+            self.lbls = load_obj(self.save_dir + "DataLabels.txt")
+        else:
+            self.sents = load_obj(self.save_dir + "TestDataSentence.txt")
+            self.clss = load_obj(self.save_dir + "TestDataClass.txt")
+            self.lbls = load_obj(self.save_dir + "TestDataLabels.txt")
 
-        self.sents = load_obj(self.save_dir + "DataSentence.txt")
-        self.clss = load_obj(self.save_dir + "DataClass.txt")
-        self.lbls = load_obj(self.save_dir + "DataLabels.txt")
         self.config = load_obj(self.save_dir + 'Config.json')
         self.n_sents = len(self.sents)
         print("There are {0} examples".format(self.n_sents),flush=True)
@@ -245,6 +281,8 @@ class DataLoader(object):
         self.max_len = self.config['max_len']
 
         self.ds_loader = []
+
+        self.if_train_dev = train_dev
 
         # self._shuffle()
     def __call__(self):
@@ -262,28 +300,51 @@ class DataLoader(object):
     #     self.lbls = self.lbls[indices.tolist()]
 
     def tk2idx(self, dict_tks, tks):
-        return [dict_tks[entity] for entity in tks.split(' ')]
+        ids = []
+        for entity in tks.split(' '):
+            # only need to check for word dict
+            if entity in dict_tks:
+                ids.append(dict_tks[entity])
+            else:
+                ids.append(dict_tks[WORD[UNK]])
+
+        return ids
+
+    # def tk2idx(self, dict_tks, tks):
+    #     ids = []
+    #     for entity in tks.split(' '):
+    #         if entity in dict_tks:
+    #             ids.append(dict_tks[entity])
+    #         else:
+    #             ids.append(dict_tks[WORD[UNK]])
+
+    #     return ids
+        # return [dict_tks[entity] for entity in tks.split(' ')]
 
     def EncoderVar(self, sents_batch):
         enc_batch = []
         indexes_batch = [self.tk2idx(self.dict, sentence) for sentence in sents_batch]
         for indexes in indexes_batch:
-            enc_batch.append([BOS] + indexes)
-        padList = zeroPadding(enc_batch)
-        padVar = torch.LongTensor(padList)
-        return padVar.transpose(0,1)
+            pad_num = self.max_len - len(indexes)
+            enc_batch.append([BOS] + indexes + [PAD]*pad_num)
+        # padList = zeroPadding(enc_batch)
+        padVar = torch.LongTensor(enc_batch)
+        return padVar
 
     def DecoderVar(self, lbls_batch):
-        dec_batch = [self.tk2idx(self.dict_lbl, sentence) for sentence in lbls_batch]
-        padList = zeroPadding(dec_batch)
-        padVar = torch.LongTensor(padList)
-        return padVar.transpose(0,1)
+        dec_batch = []
+        indexes_batch = [self.tk2idx(self.dict_lbl, sentence) for sentence in lbls_batch]
+        for indexes in indexes_batch:
+            pad_num = self.max_len - len(indexes)
+            dec_batch.append(indexes + [PAD]*pad_num)
+        # padList = zeroPadding(dec_batch)
+        padVar = torch.LongTensor(dec_batch)
+        return padVar
 
     def ClassVar(self, clss_batch):
-        dec_batch = [ [self.dict_clsf[cls]]  for cls in clss_batch]
+        dec_batch = [ self.dict_clsf[cls]  for cls in clss_batch]
         dec_batch = torch.LongTensor(dec_batch)
-        return dec_batch.squeeze(1)
-
+        return dec_batch
 
     def batch2TrainData(self, sent_batch, lbls_batch, clss_batch):
         enc = self.EncoderVar(sent_batch)
@@ -297,12 +358,13 @@ class DataLoader(object):
         clss = copy.deepcopy(self.clss)
         
         enc, tgt, cls = self.batch2TrainData(sents, lbls, clss)
-        # shuffle
-        indices = np.arange(len(self.sents))
-        np.random.shuffle(indices)
-        enc = enc[indices]
-        tgt = tgt[indices]
-        cls = cls[indices]
+        if self.if_train_dev:
+            # shuffle
+            indices = np.arange(len(self.sents))
+            np.random.shuffle(indices)
+            enc = enc[indices]
+            tgt = tgt[indices]
+            cls = cls[indices]
 
         for i in range(self.n_batch):
             idx_s = i*self.batch_size
@@ -321,9 +383,15 @@ class DataLoader(object):
         # self.config['max_len'] = self.max_len
         # save_obj(config, self.save_dir + 'Config.json')
 
+
+
+
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transformer NER')
-    parser.add_argument('--corpus-data', type=str, default='../data/data.txt',
+    parser.add_argument('--corpus-data', type=str, default='../data/data_less.txt',
                         help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
@@ -333,10 +401,10 @@ if __name__ == '__main__':
     corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     # # data = torch.load("data/vae_nlg.pt")
-    # dl = DataLoader(args.save_dir)()
+    dl = DataLoader(args.save_dir)()
 
-    # for sent, label,cls in dl:
-    #     print(sent,label,cls)
+    for sent, label,cls in dl[:1]:
+        print(sent[:3],label[:3],cls[:3])
 
     # a = data['dict']['src']['，']
     # print(a)
