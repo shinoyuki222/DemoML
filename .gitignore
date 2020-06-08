@@ -11,7 +11,6 @@ NER/main_Transformer/data/*.json
 NER/main_BERT/data/*
 NER/data/*.txt
 NER/data/*.json
-NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
 BERT/BERT_Torch.ipynb
 BERT/BERT-Torch.py
 VAE_NLG/model/vae_nlg_inference_model.tar
@@ -24,7 +23,6 @@ Transformer/Transformer(Greedy_decoder)-Torch.py
 NER/data/w2v
 NER/data/train/tags.txt
 NER/data/train/sentences.txt
-NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
 NER/data/corpus_no_slots/car-unknown-def.txt
 NER/data/corpus_no_slots/car-unknown-def_BOI.txt
 NER/data/data_214.zip
@@ -46,7 +44,4 @@ NER/main_Transformer/data/reports_0608/reports_slot_error.txt
 NER/main_Transformer/data/reports_0608/scores.txt
 NER/main_Transformer/data/reports_0608_Topic214.zip
 NER/main_Transformer/data/Transformer_NER_best.pyt
-NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
 NER/main_Transformer/model_pre.py
-NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
-NER/data/cmn_CHN/auto_only-nav-waypoint_BOI.txt
