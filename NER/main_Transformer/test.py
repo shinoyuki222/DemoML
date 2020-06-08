@@ -23,7 +23,6 @@ from metrics import get_entities
 from evaluate import load_mask, softmax_mask
 
 
-
 class DataLoader_test(object):
     def __init__(self, save_dir):
         self.save_dir = save_dir
@@ -128,15 +127,14 @@ if __name__ == '__main__':
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
 
-    config = load_obj(args.save_dir+'Config.json')
-    cls_size = config['num_class']
-    tgt_size = config['num_label']
 
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
 
     model_ckpt = torch.load(os.path.join(args.save_dir, '{}.pyt'.format("Transformer_NER_best")),map_location=torch.device(device))
-    model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
+
+    config = load_obj(args.save_dir+'Config.json')
+    model =Transformer_Mix(config, pre_w2v).to(device)
     model.load_state_dict (model_ckpt['model'])
 
     # Initialize the DataLoader
