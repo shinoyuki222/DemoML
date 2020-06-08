@@ -18,6 +18,7 @@ from dataloader import DataLoader, Corpus, load_obj
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from model import Transformer_Mix, get_attn_pad_mask
 
+
 def split_data(data, test_size=0.33):
     dl_train, dl_test =train_test_split(data, test_size=test_size, random_state=42)
     return dl_train, dl_test
@@ -203,20 +204,23 @@ def evaluate_f1(model, dl_test, save_dir, criterion_clsf = nn.CrossEntropyLoss()
 
     return loss_test/len(dl_test), f1_cls*100, f1_tgt*100, f1_tgt_merged
 
+
+
 if __name__ == '__main__':
 
     print('device = ', device, flush=True)
     parser = argparse.ArgumentParser(description='Transformer NER')
     # parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
                         # help='path to corpus data')
+    parser.add_argument('-src','--corpus-name', type=str, default='data_less.txt',
+                        help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data/',
                         help='path to save processed data')
+
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
-
-    config = load_obj(args.save_dir+'Config.json')
-    cls_size = config['num_class']
-    tgt_size = config['num_label']
+    
+    args.corpus_data = args.save_dir + args.corpus_name
     # corpus = Corpus(args.corpus_data, args.pre_w2v, args.save_dir)
 
     dl = DataLoader(args.save_dir, batch_size = 128)()
@@ -226,7 +230,10 @@ if __name__ == '__main__':
     
 
     model_ckpt = torch.load(os.path.join(args.save_dir, '{}.pyt'.format("Transformer_NER_best")),map_location=torch.device(device))
-    model =Transformer_Mix(cls_size, tgt_size, pre_w2v).to(device)
+    config = load_obj(args.save_dir+'Config.json')
+    # cls_size = config['num_class']
+    # tgt_size = config['num_label']
+    model =Transformer_Mix(config, pre_w2v).to(device)
     model.load_state_dict (model_ckpt['model'])
     optimizer = optim.Adam(model.parameters(), lr=0.01)
     optimizer.load_state_dict(model_ckpt['model_opt'])
@@ -239,7 +246,11 @@ if __name__ == '__main__':
     criterion_tgt = nn.CrossEntropyLoss(ignore_index=PAD).to(device)
 
     loss_epoch_test, f1_cls, f1_tgt, f1_tgt_merged = evaluate_f1(model, dl_test, args.save_dir, verbose=1)
-    _, _, f1_tgt_no_mask, f1_tgt_merged_no_mask = evaluate_f1_no_mask(model, dl_test, args.save_dir, verbose=1)
+    _, _, f1_tgt_no_mask, f1_tgt_merged_no_mask = evaluate_f1_no_mask(model, dl_test, args.save_dir, verbose=0)
+
     print('test_cost = {0:6f}, f1_intent = {1:4f}, f1_slot = {2:4f}, f1_slot_merged = {3:4f}, f1_slot_no_mask = {4:4f}, f1_slot_merged_no_mask = {5:4f}'.format(loss_epoch_test, f1_cls, f1_tgt, f1_tgt_merged, f1_tgt_no_mask, f1_tgt_merged_no_mask), flush=True)
+
+
+    # generate_report_txt(model, dl_test, args.save_dir, verbose=1)
 
         

@@ -16,3 +16,5 @@ d_ff = 1024 # FeedForward dimension
 d_k = d_v = 64  # dimension of K(=Q), V
 n_layers = 3  # number of Encoder of Decoder Layer
 n_heads = 2  # number of heads in Multi-Head Attention
+
+MIN_COUNT = 4
