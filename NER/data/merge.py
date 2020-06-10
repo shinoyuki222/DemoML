@@ -107,7 +107,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-d', '--domain', action='store', dest='domain_name', default='auto_only-nav-distance',help='domain name')
-	parser.add_argument('-l', '--language', action='store', dest='language', default='cmn_CHN', help='language code')
+	parser.add_argument('-l', '--language', action='store', dest='language', default='cmn_CHN-word', help='language code')
 	args = parser.parse_args()
 
 	# data = Data(args.domain_name)
