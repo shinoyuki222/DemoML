@@ -35,3 +35,6 @@ NER/main_Transformer/data/report
 NER/main_Transformer/data/Transformer_NER_best.pyt
 NER/main_Transformer/model_pre.py
 *.zip
+NER/data/cmn_CHN-word/*.txt
+NER/data/data*
+NER/main_Transformer/data*
