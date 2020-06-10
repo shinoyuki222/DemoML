@@ -38,7 +38,6 @@ class DataLoader_test(object):
 
         tokens = split(textprocess(sent))
         sentence.append(self.convert_tokens_to_ids(tokens))
-        # print(tokens)
         return tokens, torch.tensor(sentence, dtype=torch.long)
 
     def convert_tokens_to_ids(self, tokens):
@@ -102,9 +101,12 @@ def test(model, sentence, save_dir, mark='Eval', verbose=False):
     return pred_cls ,pred_lbls
 
 def pretty_print(tokens, pred_lbls, pred_cls):
+    print('\n==============RAW==================', flush=True)
+    print('{0}\n{1}'.format(' '.join(tokens), ' '.join(pred_lbls)), flush=True)
+
     chunks = get_entities(pred_lbls)
     slot_result = []
-    print('===================================', flush=True)
+    print('\n===================================', flush=True)
     print('Intent\n\t', pred_cls, flush=True)
     print('Slots', flush=True)
     for chunk in chunks:
@@ -154,7 +156,7 @@ if __name__ == '__main__':
     pred_cls ,pred_lbls = test(model, test_data, args.save_dir, mark='Test', verbose=True)
     # Format and print response sentence
     # pred_tags[:] = [x for x in pred_tags if x != 'PAD']
-    print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
+    # print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
     # print('intent:', pred_cls)
     pretty_print(tokens, pred_lbls, pred_cls)
     # exit()
@@ -173,7 +175,6 @@ if __name__ == '__main__':
             pred_cls ,pred_lbls = test(model, test_data, args.save_dir, mark='Test', verbose=True)
             # Format and print response sentence
             # pred_tags[:] = [x for x in pred_tags if x != 'PAD']
-            print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)), flush=True)
             # print('intent:', pred_cls)
             pretty_print(tokens, pred_lbls, pred_cls)
             # exit()
