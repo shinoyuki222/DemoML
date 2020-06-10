@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 
-from utils import split, textprocess
+from utils import split, textprocess, split_word
 import os
 from metrics import f1_score_merged
 from metrics import classification_report
@@ -36,7 +36,7 @@ class DataLoader_test(object):
         """
         sentence = []
 
-        tokens = split(textprocess(sent))
+        tokens = split_word(textprocess(sent))
         sentence.append(self.convert_tokens_to_ids(tokens))
         return tokens, torch.tensor(sentence, dtype=torch.long)
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Transformer NER')
     # parser.add_argument('--corpus-data', type=str, default='../data/auto_only-nav-distance_BOI.txt',
                         # help='path to corpus data')
-    parser.add_argument('--save-dir', type=str, default='./data_char/',
+    parser.add_argument('--save-dir', type=str, default='./data_word/',
                         help='path to save processed data')
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
