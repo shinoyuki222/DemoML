@@ -42,8 +42,23 @@ def unicodeToAscii(s):
     return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
     # return unicodedata.normalize('NFKD',s).encode('ascii','ignore')
 
-def split(sent):
-    return list(sent)
+# def split(sent):
+#     # remove space between chinese charactors
+#     sent = re.sub(r'(?<=[^\W\d_])\s+(?=[^\W\d_])', '', sent)
+#     return list(sent)
+
+def split(str):
+    regex = r"[\u4e00-\ufaff]|[0-9]+|[a-zA-Z]+\'*[a-z]*"
+    matches = re.findall(regex, str, re.UNICODE)
+    return matches
+
+def split_word(sent):
+    import jieba
+    # remove space between chinese charactors
+    sent = re.sub(r'(?<=[^\W\d_])\s+(?=[^\W\d_])', '', sent)
+    # return list(sent)
+    return " ".join(jieba.cut(sent,HMM=True)).split(" ")
+
 
 def filter(s):
     # if ' ' in s:
