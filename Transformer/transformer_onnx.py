@@ -64,15 +64,15 @@ class MultiHeadAttention(nn.Module):
         # K: (batch_size, len_k, d_model)
         # V: (batch_size, len_k, d_model)
         # attn_mask: (batch_size, len_q, len_k)
-        residual, batch_size = Q, Q.size(0)
+        residual, batch_size, len_q = Q, Q.size(0), Q.size(1)
+        len_k = len_q
         # (B, S, dk/d_q) -proj-> (B, S, D) -split-> (B, S, H, d_k(d_q)) -trans-> (B, H, S, d_k(d_q))
-        q_s = self.W_Q(Q).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # q_s: (batch_size, n_heads, len_q, d_k)
-        k_s = self.W_K(K).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # k_s: (batch_size, n_heads, len_k, d_k)
-        v_s = self.W_V(V).view(batch_size, -1, n_heads, d_v).transpose(1,2)  # v_s: (batch_size, n_heads, len_k, d_v)
+        q_s = self.W_Q(Q).view(batch_size, -1, len_q, d_k).expand(batch_size, n_heads, len_q, d_k)  # q_s: (batch_size, n_heads, len_q, d_k)
+        k_s = self.W_K(K).view(batch_size, -1, len_k, d_k).expand(batch_size, n_heads, len_k, d_k)   # k_s: (batch_size, n_heads, len_k, d_k)
+        v_s = self.W_V(V).view(batch_size, -1, len_k, d_v).expand(batch_size, n_heads, len_k, d_v)   # v_s: (batch_size, n_heads, len_k, d_v)
 
         #(B, len_q, len_k) -unsqueeze(1)-> (B, 1, len_q, len_k) - repeat -> (B, n_heads, len_q, len_k)
-        attn_mask = attn_mask.unsqueeze(1).repeat(1, n_heads, 1, 1) # attn_mask : (batch_size, n_heads, len_q, len_k)
-
+        attn_mask = attn_mask.repeat(1, n_heads, 1, 1) # attn_mask : (batch_size, n_heads, len_q, len_k)
         # context: (batch_size, n_heads, len_q, d_v)
         # attn: (batch_size, n_heads, len_q/len_k, len_k/len_q)
         context, attn = self.scaled_attn(q_s, k_s, v_s, attn_mask)
@@ -244,10 +244,7 @@ torch.onnx.export(model,               # model being run
                   opset_version=10,          # the ONNX version to export the model to
                   do_constant_folding=True,  # whether to execute constant folding for optimization
                   input_names = ['input'],   # the model's input names
-                  output_names = ['output'], # the model's output names
-                  dynamic_axes={'input' : {0 : 'batch_size',},    # variable lenght axes
-                                'output' : {0 : 'batch_size'}
-                                })
+                  output_names = ['output'])
 
 import onnx
 
@@ -281,6 +278,14 @@ np.testing.assert_allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e
 
 print("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
+from onnxsim import simplify
+
+# convert model
+model_simp, check = simplify(onnx_model)
+
+assert check, "Simplified ONNX model could not be validated"
+
+# use model_simp as a standard ONNX model object
 
 # context, attn = ScaledDotProductAttention()(enc_outputs, enc_outputs, enc_outputs, enc_self_attn_mask)
 
