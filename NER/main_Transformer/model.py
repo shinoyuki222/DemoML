@@ -82,7 +82,7 @@ class MultiHeadAttention(nn.Module):
         v_s = self.W_V(V).view(batch_size, -1, n_heads, d_v).transpose(1,2)  # v_s: (batch_size, n_heads, len_k, d_v)
 
         #(B, len_q, len_k) -unsqueeze(1)-> (B, 1, len_q, len_k) - repeat -> (B, n_heads, len_q, len_k)
-        attn_mask = attn_mask.unsqueeze(1).repeat(1, n_heads, 1, 1) # attn_mask : (batch_size, n_heads, len_q, len_k)
+        attn_mask = attn_mask.repeat(1, n_heads, 1, 1) # attn_mask : (batch_size, n_heads, len_q, len_k)
 
         # context: (batch_size, n_heads, len_q, d_v)
         # attn: (batch_size, n_heads, len_q/len_k, len_k/len_q)
@@ -150,11 +150,10 @@ class Encoder(nn.Module):
         self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(self.src_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
 
-    def forward(self, enc_inputs): # enc_inputs : (batch_size, source_len)
+    def forward(self, enc_inputs,enc_self_attn_mask): # enc_inputs : (batch_size, source_len)
         enc_outputs = self.fc(self.src_emb(enc_inputs))  + self.pos_emb(torch.LongTensor(range(self.src_len+1)).to(device))
         # print(self.pos_emb.weight.size())
         # print(self.src_emb.weight.size())
-        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs)
         enc_self_attns = []
         for layer in self.layers:
             enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
@@ -168,13 +167,10 @@ class Decoder(nn.Module):
         self.pos_emb = nn.Embedding.from_pretrained(positional_encoding(tgt_len+1, d_model),freeze=True)
         self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
 
-    def forward(self, dec_inputs, enc_inputs, enc_outputs): # dec_inputs : (batch_size, target_len)
+    def forward(self, dec_inputs,dec_self_attn_pad_mask,dec_enc_attn_mask, enc_inputs, enc_outputs): # dec_inputs : (batch_size, target_len)
         dec_outputs = self.tgt_emb(dec_inputs) + self.pos_emb(dec_inputs)
-        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
         dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
         dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0)
-
-        dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs)
 
         dec_self_attns, dec_enc_attns = [], []
         for layer in self.layers:
@@ -216,14 +212,14 @@ class Transformer_Mix(nn.Module):
         self.decoder = nn.Linear(d_model, tgt_size).to(device)
 
     def forward(self, enc_inputs, enc_self_attn_mask):
-        enc_outputs, enc_self_attns = self.encoder(enc_inputs)
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs,enc_self_attn_mask)
         h_pooled = self.activ(self.fc(enc_outputs[:, 0]))
         logits_clsf = self.classifier(h_pooled)
 
         # print("enc_outputs\n",enc_outputs[0]-enc_outputs[1])
         # print("h_pooled\n",h_pooled[0]-h_pooled[1])
         # print("logits_clsf\n",logits_clsf[0]-logits_clsf[1])
-        mask_tgt = ~enc_self_attn_mask[:,0,:].unsqueeze(2) # [batch_size, maxlen, d_model]
+        mask_tgt = enc_self_attn_mask[:,0,:].unsqueeze(2)==False# [batch_size, maxlen, d_model]
 
         h_masked = enc_outputs * mask_tgt # masking position [batch_size, len, d_model]
         h_masked = self.norm(self.activ2(self.linear(h_masked)))
