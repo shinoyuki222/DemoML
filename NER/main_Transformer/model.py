@@ -214,7 +214,8 @@ class Transformer_Mix(nn.Module):
 
     def forward(self, enc_inputs, enc_self_attn_mask):
         len_q= enc_inputs.size(1)
-        enc_self_attn_mask_expand = torch.cat(len_q*[enc_self_attn_mask.unsqueeze(1)], axis = 1)
+        enc_self_attn_mask_expand = enc_self_attn_mask.expand(enc_inputs.size(0),enc_inputs.size(0),enc_inputs.size(1))
+        # enc_self_attn_mask_expand = torch.cat(len_q*[enc_self_attn_mask.unsqueeze(1)], axis = 1)
         enc_outputs, enc_self_attns = self.encoder(enc_inputs,enc_self_attn_mask_expand)
         h_pooled = self.activ(self.fc(enc_outputs.narrow(1,0,1).squeeze(1))) #same as enc_outputs[:,0]
         logits_clsf = self.classifier(h_pooled)
