@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import jieba
 def findFiles(path): return glob.glob(path)
 
 def readLines(data_path):
@@ -19,7 +20,7 @@ class Data:
 
 	def split(self, string):
 		return self.spliteKeyWord(string)
-		# return " ".join(jieba.cut(word,HMM=True)).split(" ")
+		# return " ".join(jieba.cut(string,HMM=True)).split(" ")
 
 
 	def Raw_data(self):
@@ -96,6 +97,8 @@ if __name__ == '__main__':
 	domains = os.listdir(args.language)
 	for domain in domains:
 		domain = domain.split('.')[0]
+		if 'BOI' in domain:
+			continue
 		print(domain)
 		data = Data(domain, args.language)
 		data.Raw_data()
