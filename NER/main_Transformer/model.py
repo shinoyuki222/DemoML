@@ -23,8 +23,8 @@ def get_attn_pad_mask(seq_q, seq_k):
     batch_size, len_q = seq_q.size()
     batch_size, len_k = seq_k.size()
     # eq(zero) is PAD token
-    pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)  # (batch_size, 1, len_k/len_q) one is masking
-    return pad_attn_mask.expand(batch_size, len_q, len_k)  # (batch_size, len_q, len_k)
+    pad_attn_mask = seq_k.data.eq(0)  # (batch_size, 1, len_k/len_q) one is masking
+    return pad_attn_mask  # (batch_size, len_q, len_k)
 
 def get_attn_subsequent_mask(seq):
     attn_shape = [seq.size(0), seq.size(1), seq.size(1)]
@@ -75,14 +75,15 @@ class MultiHeadAttention(nn.Module):
         # K: (batch_size, len_k, d_model)
         # V: (batch_size, len_k, d_model)
         # attn_mask: (batch_size, len_q, len_k)
-        residual, batch_size = Q, Q.size(0)
+        residual, batch_size, len_q, len_k= Q, Q.size(0),  Q.size(1), K.size(1)
         # (B, S, dk/d_q) -proj-> (B, S, D) -split-> (B, S, H, d_k(d_q)) -trans-> (B, H, S, d_k(d_q))
-        q_s = self.W_Q(Q).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # q_s: (batch_size, n_heads, len_q, d_k)
-        k_s = self.W_K(K).view(batch_size, -1, n_heads, d_k).transpose(1,2)  # k_s: (batch_size, n_heads, len_k, d_k)
-        v_s = self.W_V(V).view(batch_size, -1, n_heads, d_v).transpose(1,2)  # v_s: (batch_size, n_heads, len_k, d_v)
+        q_s = self.W_Q(Q).reshape(batch_size, len_q, n_heads, d_k).transpose(1,2)  # q_s: (batch_size, n_heads, len_q, d_k)
+        k_s = self.W_K(K).reshape(batch_size, len_k, n_heads, d_k).transpose(1,2)  # k_s: (batch_size, n_heads, len_k, d_k)
+        v_s = self.W_V(V).reshape(batch_size, len_k, n_heads, d_v).transpose(1,2)  # v_s: (batch_size, n_heads, len_k, d_v)
 
         #(B, len_q, len_k) -unsqueeze(1)-> (B, 1, len_q, len_k) - repeat -> (B, n_heads, len_q, len_k)
-        attn_mask = attn_mask.repeat(1, n_heads, 1, 1) # attn_mask : (batch_size, n_heads, len_q, len_k)
+        attn_mask = torch.cat(n_heads*[attn_mask.unsqueeze(1)], axis = 1)
+        # attn_mask = attn_mask.expand(batch_size, n_heads, len_q, len_k) # attn_mask : (batch_size, n_heads, len_q, len_k)
 
         # context: (batch_size, n_heads, len_q, d_v)
         # attn: (batch_size, n_heads, len_q/len_k, len_k/len_q)
@@ -212,15 +213,17 @@ class Transformer_Mix(nn.Module):
         self.decoder = nn.Linear(d_model, tgt_size).to(device)
 
     def forward(self, enc_inputs, enc_self_attn_mask):
-        enc_outputs, enc_self_attns = self.encoder(enc_inputs,enc_self_attn_mask)
-        h_pooled = self.activ(self.fc(enc_outputs[:, 0]))
+        len_q= enc_inputs.size(1)
+        enc_self_attn_mask_expand = torch.cat(len_q*[enc_self_attn_mask.unsqueeze(1)], axis = 1)
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs,enc_self_attn_mask_expand)
+        h_pooled = self.activ(self.fc(enc_outputs.narrow(1,0,1).squeeze(1))) #same as enc_outputs[:,0]
         logits_clsf = self.classifier(h_pooled)
 
         # print("enc_outputs\n",enc_outputs[0]-enc_outputs[1])
         # print("h_pooled\n",h_pooled[0]-h_pooled[1])
         # print("logits_clsf\n",logits_clsf[0]-logits_clsf[1])
-        mask_tgt = enc_self_attn_mask[:,0,:].unsqueeze(2)==False# [batch_size, maxlen, d_model]
-
+        mask_tgt = enc_self_attn_mask.unsqueeze(2)==False# [batch_size, maxlen, d_model]
+        # print(mask_tgt.size())
         h_masked = enc_outputs * mask_tgt # masking position [batch_size, len, d_model]
         h_masked = self.norm(self.activ2(self.linear(h_masked)))
         logits_tgt = self.decoder(h_masked)
