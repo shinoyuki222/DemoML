@@ -13,7 +13,7 @@ from metrics import classification_report
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
-from dataloader import DataLoader, Corpus, load_obj
+from dataloader import DataLoader, Corpus, load_obj, save_obj
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 from model import Transformer_Mix, get_attn_pad_mask
@@ -22,26 +22,28 @@ from metrics import get_entities
 
 from evaluate import load_mask, softmax_mask
 
-# def load_mask(save_dir):
-#     config = load_obj(save_dir + "Config.json")
-#     num_label = config['num_label']
-#     idx2lbl = load_obj(save_dir + "idx2lbl.json")
-#     idx2cls  = load_obj(save_dir + "idx2cls.json")
-#     dict_lbl = load_obj(save_dir + "dict_lbl.json")
-#     dict_clsf  = load_obj(save_dir + "dict_clsf.json")
-#     lbl_mask = load_obj(save_dir + "lbl_mask.json")
+def load_mask(save_dir):
+    config = load_obj(save_dir + "Config.json")
+    num_label = config['num_label']
+    idx2lbl = load_obj(save_dir + "idx2lbl.json")
+    idx2cls  = load_obj(save_dir + "idx2cls.json")
+    dict_lbl = load_obj(save_dir + "dict_lbl.json")
+    dict_clsf  = load_obj(save_dir + "dict_clsf.json")
+    lbl_mask = load_obj(save_dir + "lbl_mask.json")
 
-#     idx_mask = {}
-#     for intent in lbl_mask:
-#         valid_slot = lbl_mask[intent]
-#         mask = [0] * num_label
-#         for s in valid_slot:
-#             idx = dict_lbl[s]
-#             mask[idx] = 1
-#         idx_mask[dict_clsf[intent]] = mask
-#         # print(idx_mask)
-    
-#     return idx_mask
+    idx_mask = {}
+    idx_mask_onnx = {}
+    for intent in lbl_mask:
+        valid_slot = lbl_mask[intent]
+        mask = [0] * num_label
+        for s in valid_slot:
+            idx = dict_lbl[s]
+            mask[idx] = 1
+        idx_mask_onnx[dict_clsf[intent]] = mask
+        idx_mask[dict_clsf[intent]] = torch.LongTensor(mask).to(device)
+        # print(idx_mask)
+    save_obj(idx_mask_onnx, save_dir+ 'idx_mask_onnx.json')
+    return idx_mask
 
 class DataLoader_test(object):
     def __init__(self, save_dir):
