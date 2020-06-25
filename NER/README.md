@@ -7,9 +7,9 @@ Model based on paper:
 ### Prepared data
   - Make sure you have *data/corpus_name*
   ```shell
-  python process_data
+  python process_data.py -l corpus_name
   ```
-  will create data/*, respectively.
+  will create data/corpus_name, respectively.
 
 ### To train the Transformer model
 
