@@ -1,6 +1,7 @@
 # DemoML
 Demos of Machine Learning Algorithm
-Please visit [My Blog](https://shinoyuki222.github.io) to read corresponding discussions.
+
+Please visit [My Blog](https://shinoyuki222.github.io) to read corresponding discussions(Mainly in Chinese).
 
 Don't hesitate to make your comments: [Blog issues](https://github.com/shinoyuki222/shinoyuki222.github.io/issues) or [Demo issues](https://github.com/shinoyuki222/DemoML/issues)
 
@@ -48,12 +49,12 @@ Issues include but *not* limited to:
 - [NER with LSTM](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_LSTM)
 - [NER with pretrained BERT](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_BERT)
 
-#### <span id="nlu">Natural Language Understanding: Mixed with Topic classification and NER</span>:
+#### <span id="nlu">Natural Language Understanding (NLU): Mixed with Topic classification and NER</span>:
 - [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NLU/data): additional process needed
 - [NLU with Transformer](https://github.com/shinoyuki222/DemoML/tree/master/NLU/main_Transformer)
 - [NLU with pretrained BERT](https://github.com/shinoyuki222/DemoML/tree/master/NLU/main_BERT)
 
-#### <span id="nlg">Natural Language Generation(NLG)</span>
+#### <span id="nlg">Natural Language Generation (NLG)</span>
 - [Data](https://github.com/shinoyuki222/DemoML/tree/master/VAE_NLG/data)
 - [NLG using VAE](https://github.com/shinoyuki222/DemoML/tree/master/VAE_NLG)
 
