@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 
-from utils import split, textprocess
+from utils import split, textprocess, create_dir
 import os
 from metrics import f1_score_merged
 from metrics import classification_report
@@ -165,6 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
     args = parser.parse_args()
 
+    create_dir(args.onnx_dir)
 
     pre_w2v = torch.load(args.save_dir + 'pre_w2v')
     pre_w2v = torch.Tensor(pre_w2v).to(device)
