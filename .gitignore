@@ -38,3 +38,4 @@ NER/main_Transformer/model_pre.py
 NER/data/cmn_CHN-word/*.txt
 NER/data/data*
 NER/main_Transformer/data*
+NER/main_Transformer/archive/*
