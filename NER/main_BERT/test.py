@@ -15,13 +15,12 @@ from metrics import classification_report
 
 from data_loader import DataLoader
 import utils
-from utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='./data/', help="Directory containing the dataset")
+parser.add_argument('--data_dir', default='..\\NER_data\\MSRA', help="Directory containing the dataset")
 parser.add_argument('--bert_model_dir', default='bert-base-chinese-pytorch',
                     help="Directory containing the BERT model in PyTorch")
-parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
+parser.add_argument('--model_dir', default='experiments\\base_model', help="Directory containing params.json")
 parser.add_argument('--seed', type=int, default=23, help="random seed for initialization")
 parser.add_argument('--restore_file', default='best', help="name of the file in `model_dir` containing weights to load")
 parser.add_argument('--multi_gpu', default=False, action='store_true', help="Whether to use multiple GPUs if available")
@@ -48,7 +47,11 @@ class DataLoader_test(object):
         self.tokenizer = BertTokenizer.from_pretrained(bert_model_dir, do_lower_case=True)
 
     def load_tags(self):
-        tags = load_obj(self.data_dir + "dict_lbl.json")
+        tags = []
+        file_path = os.path.join(self.data_dir, 'tags.txt')
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for tag in file:
+                tags.append(tag.strip())
         return tags
 
     def load_sentences(self, sent):
@@ -57,9 +60,8 @@ class DataLoader_test(object):
         """
         sentence = []
 
-        tokens = self.tokenizer.tokenize(textprocess(sent))
+        tokens = self.tokenizer.tokenize(sent.strip())
         sentence.append(self.tokenizer.convert_tokens_to_ids(tokens))
-        print(sentence)
         return torch.tensor(sentence, dtype=torch.long)
 
 
@@ -70,9 +72,11 @@ def test(model, sentence, params, mark='Eval', verbose=False):
 
     idx2tag = params.idx2tag
     pred_tags = []
-    batch_masks = sentence.gt(0).to(device)
-    
-    batch_output = model(sentence.to(device), token_type_ids=None,attention_mask=batch_masks)  # shape: (batch_size, max_len, num_labels)
+
+    batch_masks = sentence.gt(0)
+
+    batch_output = model(sentence, token_type_ids=None,
+                         attention_mask=batch_masks)  # shape: (batch_size, max_len, num_labels)
 
     batch_output = batch_output.detach().cpu().numpy()
     pred_tags.extend([idx2tag.get(idx) for indices in np.argmax(batch_output, axis=2) for idx in indices])
@@ -119,7 +123,6 @@ if __name__ == '__main__':
 
     model.to(params.device)
     # Reload weights from the saved file
-    print(os.path.join(args.model_dir, args.restore_file + '.pth.tar'))
     utils.load_checkpoint(os.path.join(args.model_dir, args.restore_file + '.pth.tar'), model)
     if args.fp16:
         model.half()

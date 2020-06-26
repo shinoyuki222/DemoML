@@ -13,7 +13,7 @@ from tqdm import trange
 
 from pytorch_pretrained_bert import BertForTokenClassification
 
-from data_loader import DataLoader, Corpus
+from data_loader import DataLoader
 from evaluate import evaluate
 import utils
 
@@ -125,10 +125,10 @@ def train_and_evaluate(model, train_data, val_data, optimizer, scheduler, params
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', default='./data/', help="Directory containing the dataset")
+    parser.add_argument('--data_dir', default='..\\NER_data\\MSRA', help="Directory containing the dataset")
     parser.add_argument('--bert_model_dir', default='bert-base-chinese-pytorch',
                         help="Directory containing the BERT model in PyTorch")
-    parser.add_argument('--model_dir', default='experiments/base_model', help="Directory containing params.json")
+    parser.add_argument('--model_dir', default='experiments\\base_model', help="Directory containing params.json")
     parser.add_argument('--seed', type=int, default=2019, help="random seed for initialization")
     parser.add_argument('--restore_file', default=None,
                         help="Optional, name of the file in --model_dir containing weights to reload before training")
@@ -141,8 +141,7 @@ if __name__ == '__main__':
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
 
-    parser.add_argument('--corpus-data', type=str, default='../data/nav.txt',
-                        help='path to corpus data')
+
 
     args = parser.parse_args()
 
@@ -171,7 +170,6 @@ if __name__ == '__main__':
     logging.info("Loading the datasets...")
     
     # Initialize the DataLoader
-    corpus = Corpus(args.corpus_data, args.data_dir)
     data_loader = DataLoader(args.data_dir, args.bert_model_dir, params, token_pad_idx=0)
     
     # Load training data and test data
