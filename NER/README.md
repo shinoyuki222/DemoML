@@ -40,6 +40,12 @@ cd main_Transformer
 python load_onnx.py
 ```
 
+
+
+
+
+
+
 ### To train the BERT-pretrained model
 #### Get BERT model for PyTorch
 - Install [pytorch-pretrained-bert](https://pypi.org/project/pytorch-pretrained-bert/):
