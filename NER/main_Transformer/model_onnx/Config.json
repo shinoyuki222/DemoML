@@ -1,1 +1,1 @@
-{"num_word": 17863, "num_label": 450, "num_class": 214, "num_train": 2402869, "max_len": 111}
+{"max_len": 111, "WORD": {"0": "<pad>", "1": "<unk>", "2": "<s>", "3": "</s>"}, "BOS": 2, "UNK": 1, "PAD": 0}
