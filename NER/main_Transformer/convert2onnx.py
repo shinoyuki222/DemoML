@@ -22,11 +22,9 @@ from metrics import get_entities
 
 from evaluate import load_mask, softmax_mask
 
-def load_mask(save_dir):
+def load_save_mask(save_dir, save_onnx):
     config = load_obj(save_dir + "Config.json")
     num_label = config['num_label']
-    # idx2lbl = load_obj(save_dir + "idx2lbl.json")
-    # idx2cls  = load_obj(save_dir + "idx2cls.json")
     dict_lbl = load_obj(save_dir + "dict_lbl.json")
     dict_clsf  = load_obj(save_dir + "dict_clsf.json")
     lbl_mask = load_obj(save_dir + "lbl_mask.json")
@@ -41,9 +39,24 @@ def load_mask(save_dir):
             mask[idx] = 1
         idx_mask_onnx[dict_clsf[intent]] = mask
         idx_mask[dict_clsf[intent]] = torch.LongTensor(mask).to(device)
-        # print(idx_mask)
-    save_obj(idx_mask_onnx, save_dir+ 'idx_mask_onnx.json')
-    return idx_mask
+    save_obj(idx_mask_onnx, save_onnx+ 'idx_mask_onnx.json')
+    torch.save(idx_mask, save_dir + 'idx_mask.json')
+
+def save_dict_onnx(save_dir, save_onnx):
+    config = load_obj(save_dir + "Config.json")
+    word2idx = load_obj(save_dir + "dict.json")
+    idx2lbl = load_obj(save_dir + "idx2lbl.json")
+    idx2cls  = load_obj(save_dir + "idx2cls.json")
+    config_onnx = {}
+    config_onnx['max_len'] = config['max_len']
+    config_onnx['WORD'] = WORD
+    config_onnx['BOS'] = BOS
+    config_onnx['UNK'] = UNK
+    config_onnx['PAD'] = PAD
+    save_obj(word2idx, save_onnx+ 'dict.json')
+    save_obj(config_onnx, save_onnx+ 'Config.json') 
+    save_obj(idx2lbl, save_onnx + "idx2lbl.json")
+    save_obj(idx2cls, save_onnx + "idx2cls.json")
 
 class DataLoader_test(object):
     def __init__(self, save_dir):
@@ -82,8 +95,6 @@ def test(model, sentence, save_dir, mark='Eval', verbose=False):
     """Evaluate the model on `steps` batches."""
     # set model to evaluation mode
     model.eval()
-    
-
 
     idx2lbl = load_obj(save_dir + "idx2lbl.json")
     idx2cls  = load_obj(save_dir + "idx2cls.json")
@@ -105,7 +116,7 @@ def test(model, sentence, save_dir, mark='Eval', verbose=False):
 
 
     # get valid slot for a specific intent
-    idx_mask = load_mask(save_dir)
+    idx_mask = torch.load(save_dir + 'idx_mask.json')
 
 
     masked_logits_tgt= softmax_mask(logits_tgt, cls_idx, idx_mask)
@@ -148,7 +159,7 @@ if __name__ == '__main__':
                         # help='path to corpus data')
     parser.add_argument('--save-dir', type=str, default='./data_char/',
                         help='path to save processed data')
-    parser.add_argument('--save-dir-onnx', type=str, default='./model_onnx/',
+    parser.add_argument('--onnx-dir', type=str, default='./model_onnx/',
                         help='path to save processed data')
 
     parser.add_argument('--pre-w2v', type=str, default='../data/w2v')
@@ -166,6 +177,10 @@ if __name__ == '__main__':
 
     # Initialize the DataLoader
     data_loader = DataLoader_test(args.save_dir)
+
+    # load and save dicts
+    load_save_mask(args.save_dir, args.onnx_dir)
+    save_dict_onnx(args.save_dir, args.onnx_dir)
 
     print("Starting test...", flush=True)
     print('Please add a space between English and Chinese', flush=True)
@@ -197,7 +212,7 @@ if __name__ == '__main__':
     # logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
     torch.onnx.export(model,               # model being run
                   x,                         # model input (or a tuple for multiple inputs)
-                  args.save_dir_onnx+"transformer_mix.onnx",   # where to save the model (can be a file or file-like object)
+                  args.onnx_dir+"transformer_mix.onnx",   # where to save the model (can be a file or file-like object)
                   export_params=True,        # store the trained parameter weights inside the model file
                   opset_version=10,          # the ONNX version to export the model to
                   do_constant_folding=True,  # whether to execute constant folding for optimization
@@ -207,13 +222,13 @@ if __name__ == '__main__':
 
     import onnx
 
-    onnx_model = onnx.load(args.save_dir_onnx+"transformer_mix.onnx")
+    onnx_model = onnx.load(args.onnx_dir+"transformer_mix.onnx")
     onnx.checker.check_model(onnx_model)
 
 
     import onnxruntime
 
-    ort_session = onnxruntime.InferenceSession(args.save_dir_onnx+"transformer_mix.onnx")
+    ort_session = onnxruntime.InferenceSession(args.onnx_dir+"transformer_mix.onnx")
 
 
     def to_numpy(tensor):
@@ -242,7 +257,7 @@ if __name__ == '__main__':
     import onnxsim
     from onnxsim import simplify
     model_simp, check = simplify(onnx_model)
-    onnx.save(model_simp, args.save_dir_onnx+"transformer_mix_sim.onnx")
+    onnx.save(model_simp, args.onnx_dir+"transformer_mix_sim.onnx")
 
     assert check, "Simplified ONNX model could not be validated"
 
