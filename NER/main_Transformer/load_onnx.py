@@ -1,8 +1,6 @@
-from const import *
 import numpy as np
 from utils import load_obj,split,textprocess
 import os
-import unicodedata
 import onnxruntime
 from metrics import get_entities
 import json
@@ -70,6 +68,15 @@ class DataLoader_test(object):
         self.config = load_obj(self.save_dir + "Config.json")
         self.max_len = self.config["max_len"]
 
+        self.WORD = {int(k):v for k,v in self.config["WORD"].items()}
+        self.BOS = self.config["BOS"]
+        self.UNK = self.config["UNK"]
+        self.PAD = self.config["PAD"]
+
+        assert self.BOS == self.word2idx[self.WORD[self.BOS]]
+        assert self.UNK == self.word2idx[self.WORD[self.UNK]]
+        assert self.PAD == self.word2idx[self.WORD[self.PAD]]
+
     def load_sentences(self, sent):
         """Loads sentences and tags from their corresponding files.
             Maps tokens and tags to their indices and stores them in the provided dict d.
@@ -82,16 +89,13 @@ class DataLoader_test(object):
 
     def convert_tokens_to_ids(self, tokens):
         sentence = []
-        assert BOS == self.word2idx[WORD[BOS]]
-        assert UNK == self.word2idx[WORD[UNK]]
-
-        sentence.append(self.word2idx[WORD[BOS]])
+        sentence.append(self.BOS)
         for tok in tokens:
             if tok in self.word2idx:
                 sentence.append(self.word2idx[tok])
             else:
-                sentence.append(self.word2idx[WORD[UNK]])
-        pad = [self.word2idx[WORD[PAD]]]*(self.max_len+1 - len(sentence))
+                sentence.append(self.UNK)
+        pad = [self.PAD]*(self.max_len+1 - len(sentence))
 
         assert len(sentence + pad) == self.max_len+1
         return sentence + pad
