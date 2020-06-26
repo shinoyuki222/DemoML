@@ -25,8 +25,8 @@ from evaluate import load_mask, softmax_mask
 def load_mask(save_dir):
     config = load_obj(save_dir + "Config.json")
     num_label = config['num_label']
-    idx2lbl = load_obj(save_dir + "idx2lbl.json")
-    idx2cls  = load_obj(save_dir + "idx2cls.json")
+    # idx2lbl = load_obj(save_dir + "idx2lbl.json")
+    # idx2cls  = load_obj(save_dir + "idx2cls.json")
     dict_lbl = load_obj(save_dir + "dict_lbl.json")
     dict_clsf  = load_obj(save_dir + "dict_clsf.json")
     lbl_mask = load_obj(save_dir + "lbl_mask.json")
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # pred_tags[:] = [x for x in pred_tags if x != 'PAD']
     # print('{0}\n{1}'.format(input_sentence, ' '.join(pred_lbls)).strip(), flush=True)
     # print('intent:', pred_cls)
-    # pretty_print(tokens, pred_lbls, pred_cls)
+    pretty_print(tokens, pred_lbls, pred_cls)
     # exit()
 
     import onnx
@@ -242,7 +242,9 @@ if __name__ == '__main__':
     import onnxsim
     from onnxsim import simplify
     model_simp, check = simplify(onnx_model)
-    onnx.save(args.save_dir_onnx+"transformer_mix_sim.onnx", model_simp)
+    onnx.save(model_simp, args.save_dir_onnx+"transformer_mix_sim.onnx")
 
     assert check, "Simplified ONNX model could not be validated"
+
+    print("Simplified model has been validated, and the result looks good!")
         
