@@ -1,6 +1,8 @@
 # DemoML
 Demos of Machine Learning Algorithm
 
+Please visit [My Blog](https://shinoyuki222.github.io) to read my shallow view of Machine Learning and Natural Language Processing.
+
 ## Traditional Machine Learning
 ### Basic
 #### Gaussian Process:
