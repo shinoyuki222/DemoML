@@ -14,7 +14,7 @@ Demos of Machine Learning Algorithm
 ### Deep Learning
 #### Transformer:
 - PyTorch Demo: [Transformer](https://github.com/shinoyuki222/DemoML/tree/master/Transformer)
-- Paper: [Attention is all you need](https://arxiv.org/abs/1706.03762)
+- Paper: [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
 
 #### BERT
 - PyTorch Demo: [BERT](https://github.com/shinoyuki222/DemoML/tree/master/BERT)
@@ -22,14 +22,16 @@ Demos of Machine Learning Algorithm
 
 #### Variational AutoEncoder:
 - Pytorch Demo: [VAE](https://github.com/shinoyuki222/DemoML/tree/master/VAE_NLG)
-- Paper:[Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114)
+- Paper: [Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114)
 - Understanding: [Variational AutoEncoder](https://shinoyuki222.github.io/2020/05/03/2020-05-03%20VAE1/)
 
 ## Natural language processing
-#### Word segmentation
+#### Word segmentation: 
+- Demo with Description: [Word_segmentation](https://github.com/shinoyuki222/DemoML/tree/master/Word_segmentation)
+- 
 #### Name Entity Recognition (NER):
-- [Data preparation (additional process needed)](https://github.com/shinoyuki222/DemoML/tree/master/NER/data)
-- [Trasformer NER](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_Transformer)
+- [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NER/data): additional process needed
+- [Transformer NER](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_Transformer)
 - [BERT NER(Pretrained model)](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_BERT)
 
 #### NLG
