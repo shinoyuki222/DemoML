@@ -1,7 +1,6 @@
 # Name Entity Recognition
 [Main repo](https://github.com/shinoyuki222/DemoML/)
 
-
 ### Prepared data
   - Make sure you have *data/corpus_name*
   ```shell
