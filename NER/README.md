@@ -1,52 +1,59 @@
-# Name Entity Recognition
-[Main repo](https://github.com/shinoyuki222/DemoML/)
+# Pytorch NLP - Name Entity Recognition
+[Main repo](https://github.com/shinoyuki222/PyTorch_NLP)
 
+Model based on paper:
+[Knowledge Graph Embedding Based Question Answering](http://research.baidu.com/Public/uploads/5c1c9a58317b3.pdf)
+
+```
+└── shinoyuki222/PyTorch_NLP/tree/master/NER
+        |-- README.md
+        |-- build_msra_dataset_tags.py
+        |-- NER_data
+        |   |-- MSRA
+        |   |   |-- msra_test_bio
+        |   |   |-- msra_train_bio
+        |-- main_BERT
+        |   |-- data_loader.py
+        |   |-- evaluate.py
+        |   |-- metrics.py
+        |   |-- train.py
+        |   |-- utils.py
+        |   |-- bert-base-chinese-pytorch
+        |   |   |-- bert_config.json
+        |   |   |-- pytorch_model.bin
+        |   |   |-- vocab.txt
+        |   |-- experiments
+        |       |-- base_model
+        |           |-- evaluate.log
+        |           |-- params.json
+        |           |-- train.log
+        |-- main_LSTM
+            |-- consts.py
+            |-- dataloader.py
+            |-- metric.py
+            |-- model.py
+            |-- train.py         
+```
 ### Prepared data
-  - Make sure you have *data/corpus_name*
+  - Make sure you have *NER_data/MSRA/msra_test_bio* and *NER_data/MSRA/msra_train_bio*
   ```shell
-  python process_data.py -l corpus_name
+  python build_msra_dataset_tags.py
   ```
-  will create data/corpus_name, respectively.
+  will create NER_data/MSRA/train, NER_data/MSRA/dev, NER_data/MSRA/test, respectively.
 
-### To train the Transformer model
-#### 1. Train and evaluate your experiment
+### To train the LSTM model
+
+#### Train and evaluate your experiment
 - Train and test
-```shell
-cd main_Transformer
-python train.py
-```
-Once you got *Transformer_NER_best.pyt* under your *save_dir*
-- Evaluate
-```shell
-cd main_Transformer
-python evaluate.py
-```
-- Test
-```shell
-cd main_Transformer
-python test.py
-```
-
-#### 2. Extension: Deploying torch model with ONNX
-- convert torch model to onnx, test with onnxruntime and simplify onnx model with onnx-simplifier:
-```shell
-cd main_Transformer
-python convert2onnx.py
-```
-Should help you get *model_onnx*
-
-- python script as an example to load your exported and simplified onnx model:
-```shell
-cd main_Transformer
-python load_onnx.py
-```
-
-
-
-
-
-
-
+  ```shell
+  cd main_LSTM
+  python train.py
+  ```
+- Test only with best trained model
+  ```shell
+  cd main_LSTM
+  python train.py -xt -lm
+  ```
 ### To train the BERT-pretrained model
 #### Get BERT model for PyTorch
 - Install [pytorch-pretrained-bert](https://pypi.org/project/pytorch-pretrained-bert/):
@@ -58,7 +65,7 @@ python load_onnx.py
 
        ```shell
        export TF_BERT_DIR=/PATH_TO/chinese_L-12_H-768_A-12
-       export PT_BERT_DIR=/PATH_TO/bert-base-chinese-pytorch
+       export PT_BERT_DIR=/PATH_TO/NER-BERT-pytorch/bert-base-chinese-pytorch
        
        pytorch_pretrained_bert convert_tf_checkpoint_to_pytorch \
        $TF_BERT_DIR/bert_model.ckpt \
