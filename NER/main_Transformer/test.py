@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 
-from utils import split, textprocess
+from utils import split, textprocess, split_word
 import os
 from metrics import f1_score_merged
 from metrics import classification_report
@@ -23,6 +23,7 @@ from metrics import get_entities
 from evaluate import load_mask, softmax_mask
 
 
+
 class DataLoader_test(object):
     def __init__(self, save_dir):
         self.save_dir = save_dir
@@ -36,6 +37,7 @@ class DataLoader_test(object):
         """
         sentence = []
 
+        # tokens = split_word(textprocess(sent))
         tokens = split(textprocess(sent))
         sentence.append(self.convert_tokens_to_ids(tokens))
         return tokens, torch.tensor(sentence, dtype=torch.long)
