@@ -1,4 +1,4 @@
-# Name Entity Recognition
+# Natural language Understanding: Topic classification and name entity recognition using one model
 [Main repo](https://github.com/shinoyuki222/DemoML/)
 
 ### Prepared data
