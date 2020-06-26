@@ -33,7 +33,7 @@ python test.py
 cd main_Transformer
 python convert2onnx.py
 ```
-This should helps you got *model_onnx*
+Should help you get *model_onnx*
 
 - python script as an example to load your exported and simplified onnx model:
 ```shell
