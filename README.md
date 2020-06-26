@@ -4,7 +4,7 @@ Demos of Machine Learning Algorithm
 ## Traditional Machine Learning
 ### Basic
 #### Gaussian Process:
-- Demo:[Gaussian Process Demo](https://github.com/shinoyuki222/DemoML/tree/master/Gaussian_Process)
+- Demo: [Gaussian Process Demo](https://github.com/shinoyuki222/DemoML/tree/master/Gaussian_Process)
 - Understanding: [Gaussian Process 高斯过程](https://shinoyuki222.github.io/2020/01/09/2019-01-09%20Gaussian%20Process/)
 
 #### K-mean:
@@ -15,7 +15,7 @@ Demos of Machine Learning Algorithm
 #### Transformer:
 - PyTorch Demo: [Transformer](https://github.com/shinoyuki222/DemoML/tree/master/Transformer)
 - Paper: [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
-- Application: [NER](ner) and other sequence tagging task; Topic classfication; Chatbot and other text generation tasks.
+- Application: [Sequence tagging task](ner); [Topic classfication](nlu); [Chatbot](https://github.com/shinoyuki222/DemoNLP/tree/master/FreeChat) and other text generation tasks.
 
 #### BERT
 - PyTorch Demo: [BERT](https://github.com/shinoyuki222/DemoML/tree/master/BERT)
@@ -31,13 +31,22 @@ Demos of Machine Learning Algorithm
 ## Natural language processing
 #### Word segmentation: 
 - Demo with Description: [Word_segmentation](https://github.com/shinoyuki222/DemoML/tree/master/Word_segmentation)
-
+ 
 #### <span id="ner">Name Entity Recognition (NER)</span>:
-- [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NER/data): additional process needed
-- [NER with Transformer](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_Transformer)
+- [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NER/NER_data)
+- [NER with LSTM](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_LSTM)
 - [NER with pretrained BERT](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_BERT)
+
+#### <span id="nlu">Natural Language Understanding: Mixed with Topic classification and NER</span>:
+- [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NLU/data): additional process needed
+- [NLU with Transformer](https://github.com/shinoyuki222/DemoML/tree/master/NLU/main_Transformer)
+- [NLU with pretrained BERT](https://github.com/shinoyuki222/DemoML/tree/master/NLU/main_BERT)
 
 #### <span id="nlg">Natural Language Generation(NLG)</span>
 - [Data](https://github.com/shinoyuki222/DemoML/tree/master/VAE_NLG/data)
 - [NLG using VAE](https://github.com/shinoyuki222/DemoML/tree/master/VAE_NLG)
+
+#### <span id="cb">ChatBot</span>
+- [Data](https://github.com/shinoyuki222/DemoML/tree/master/ChatBot/chatbot_data)
+- [Seq2Seq ChatBot with LSTM](https://github.com/shinoyuki222/DemoML/tree/master/ChatBot)
 
