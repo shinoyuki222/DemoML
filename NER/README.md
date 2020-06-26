@@ -1,7 +1,5 @@
 # Name Entity Recognition
-[Main repo](https://github.com/shinoyuki222/PyTorch_ML)
-
-Model based on paper:
+[Main repo](https://github.com/shinoyuki222/DemoML/)
 
 
 ### Prepared data
@@ -12,13 +10,37 @@ Model based on paper:
   will create data/corpus_name, respectively.
 
 ### To train the Transformer model
-
 #### Train and evaluate your experiment
 - Train and test
   ```shell
   cd main_Transformer
   python train.py
   ```
+
+Once you got *Transformer_NER_best.pyt* under your *save_dir*
+- Evaluate
+```shell
+cd main_Transformer
+python evaluate.py
+```
+- Test
+```shell
+cd main_Transformer
+python test.py
+```
+#### Extension: Deploying torch model with ONNX
+- convert torch model to onnx, test with onnxruntime and simplify onnx model with onnx-simplifier:
+```shell
+cd main_Transformer
+python convert2onnx.py
+```
+This should helps you got *model_onnx*
+
+- python script as an example to load your exported and simplified onnx model:
+```shell
+cd main_Transformer
+python load_onnx.py
+```
 
 ### To train the BERT-pretrained model
 #### Get BERT model for PyTorch
