@@ -14,7 +14,7 @@ Demos of Machine Learning Algorithm
 ## Natural language processing
 #### Word segmentation
 #### Name Entity Recognition (NER):
-- [Data preparation](https://github.com/shinoyuki222/DemoML/tree/master/NER/data)
+- [Data preparation (additional process needed)](https://github.com/shinoyuki222/DemoML/tree/master/NER/data)
 - [Trasformer NER](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_Transformer)
 - [BERT NER(Pretrained model)](https://github.com/shinoyuki222/DemoML/tree/master/NER/main_BERT)
 
