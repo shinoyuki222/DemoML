@@ -10,19 +10,18 @@
 
 ### To train the Transformer model
 #### Train and evaluate your experiment
-- Train and test
-  ```shell
-  cd main_Transformer
-  python train.py
-  ```
-
+Train and test
+```shell
+cd main_Transformer
+python train.py
+```
 Once you got *Transformer_NER_best.pyt* under your *save_dir*
-- Evaluate
+Evaluate
 ```shell
 cd main_Transformer
 python evaluate.py
 ```
-- Test
+Test
 ```shell
 cd main_Transformer
 python test.py
