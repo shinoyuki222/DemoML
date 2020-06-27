@@ -13,8 +13,8 @@ Issues include but *not* limited to:
 - ...
 - ...
 
-## Traditional Machine Learning
-### Basic
+## Machine Learning Algorithm: Description and Demonstration
+### Basics
 #### Gaussian Process:
 - Demo: [Gaussian Process Demo](https://github.com/shinoyuki222/DemoML/tree/master/Gaussian_Process)
 - Understanding: [Gaussian Process 高斯过程](https://shinoyuki222.github.io/2020/01/09/2019-01-09%20Gaussian%20Process/)
@@ -22,6 +22,14 @@ Issues include but *not* limited to:
 #### K-mean:
 - Demo: [K-mean Demo](https://github.com/shinoyuki222/DemoML/tree/master/K-mean)
 - Understanding: [K-means and Latent variable model](https://shinoyuki222.github.io/2020/04/26/2020-04-26%20K-mean/)
+
+#### Linear Regression
+#### Logisctic Regression
+#### Support Vector Machine (SVM)
+#### Principal Components Analysis (PCA)
+#### Decision Tree and Random Forest (Bagging)
+#### Adaboost, Xgboost, GBDT (Boosting)
+
 
 ### Deep Learning
 #### Transformer:
@@ -61,4 +69,8 @@ Issues include but *not* limited to:
 #### <span id="cb">ChatBot</span>
 - [Data](https://github.com/shinoyuki222/DemoML/tree/master/ChatBot/chatbot_data)
 - [Seq2Seq ChatBot with LSTM](https://github.com/shinoyuki222/DemoML/tree/master/ChatBot)
+
+#### Relation Extraction
+- Bootstrap
+- SnowBall
 
