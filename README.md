@@ -1,9 +1,8 @@
-# DemoML
-Demos of Machine Learning Algorithm
+# DemoML - Demonstrations on Machine Learning
 
-Please visit [My Blog](https://shinoyuki222.github.io) to read corresponding discussions(Mainly in Chinese).
+Visit [My Blog](https://shinoyuki222.github.io) for more discussion (Mainly in Chinese).
 
-Don't hesitate to make your comments: [Blog issues](https://github.com/shinoyuki222/shinoyuki222.github.io/issues) or [Demo issues](https://github.com/shinoyuki222/DemoML/issues)
+Please leave your comments: [Blog issues](https://github.com/shinoyuki222/shinoyuki222.github.io/issues) or [Demo issues](https://github.com/shinoyuki222/DemoML/issues)
 
 Issues include but *not* limited to:
 - Potential topics: any interesting topic which has not been contained.
