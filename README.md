@@ -22,12 +22,22 @@ Issues include but *not* limited to:
 - Demo: [K-mean Demo](https://github.com/shinoyuki222/DemoML/tree/master/K-mean)
 - Understanding: [K-means and Latent variable model](https://shinoyuki222.github.io/2020/04/26/2020-04-26%20K-mean/)
 
-#### Linear Regression
-#### Logisctic Regression
-#### Support Vector Machine (SVM)
-#### Principal Components Analysis (PCA)
-#### Decision Tree and Random Forest (Bagging)
-#### Adaboost, Xgboost, GBDT (Boosting)
+#### Gausian Mixture Model (GMM)
+- Demo
+- Understanding:
+
+#### Hidden Markov Model (HMM)
+
+#### Conditional Random Field (CRF)
+
+
+#### Topics not included but can easily be found from other repos:
+- Linear Regression
+- Logisctic Regression
+- Support Vector Machine (SVM)
+- Principal Components Analysis (PCA)
+- Decision Tree and Random Forest (Bagging)
+- Adaboost, Xgboost, GBDT (Boosting)
 
 
 ### Deep Learning
