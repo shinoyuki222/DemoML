@@ -89,3 +89,10 @@ Issues include but *not* limited to:
 - Bootstrap
 - SnowBall
 
+## Deploying
+For Deploying your model, please check
+- Flask Demo: [Flask Demo NLU](https://github.com/shinoyuki222/Flask)
+- Tutorial: [Pytorch 模型部署I--Torch2ONNX](https://shinoyuki222.github.io/2020/06/13/2020-06-13%20Pytorch_Inf/) [Pytorch/ONNX 模型部署II -- Using Flask](https://shinoyuki222.github.io/2020/06/20/2020-06-20%20Flask%20deploying/)
+- Official webs: [Deplying Pytorch in Python via flask](https://pytorch.org/tutorials/intermediate/flask_rest_api_tutorial.html#sphx-glr-intermediate-flask-rest-api-tutorial-py)
+
+
