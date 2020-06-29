@@ -13,7 +13,7 @@ def get_attn_pad_mask(seq_q, seq_k):
     batch_size, len_q = seq_q.size()
     batch_size, len_k = seq_k.size()
     # eq(zero) is PAD token
-    pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)  # (batch_size, 1, len_k/len_q) one is masking
+    pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)  # (batch_size, 1, len_k) one is masking
     return pad_attn_mask.expand(batch_size, len_q, len_k)  # (batch_size, len_q, len_k)
 
 def get_attn_subsequent_mask(seq):
@@ -256,6 +256,15 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+
+    dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
+    dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
+    dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0)
+    print(dec_self_attn_pad_mask)
+    print(dec_self_attn_subsequent_mask)
+    print(dec_self_attn_mask)
+
+    exit()
 
     for epoch in range(20):
         optimizer.zero_grad()
