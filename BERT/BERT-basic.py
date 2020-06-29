@@ -163,7 +163,8 @@ class Encoder(nn.Module):
             enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
             # enc_self_attns.append(enc_self_attn)
         return enc_outputs, enc_self_attns
-
+        
+class BERT(nn.Module):
     def __init__(self):
         super(BERT, self).__init__()
         self.encoder = Encoder()
