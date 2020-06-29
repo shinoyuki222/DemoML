@@ -57,6 +57,12 @@ Issues include but *not* limited to:
 - Understanding: [Variational AutoEncoder](https://shinoyuki222.github.io/2020/05/03/2020-05-03%20VAE1/)
 - Application: [Natural Language Generation](#nlg)
 
+#### Pointer Network:
+- Pytorch Demo: [PointNet](https://github.com/shinoyuki222/DemoML/tree/master/PointNet)
+- Paper: [Pointer Networks](http://papers.nips.cc/paper/5866-pointer-networks.pdf)
+- Understanding: TBD
+- Application: Coreference, Rewrite sentence.
+
 ## Natural language processing
 #### Word segmentation: 
 - Demo with Description: [Word_segmentation](https://github.com/shinoyuki222/DemoML/tree/master/Word_segmentation)
