@@ -1,5 +1,5 @@
 import torch
-from TorchCRF import CRF1
+from CRF import CRF
 from utils import create_dir
 import numpy as np
 
@@ -10,10 +10,20 @@ num_labels = 5
 mask = torch.ByteTensor([[1, 1, 1], [1, 1, 0]]).to(device) # (batch_size. sequence_size)
 labels = torch.LongTensor([[0, 2, 3], [1, 4, 1]]).to(device)  # (batch_size, sequence_size)
 hidden = torch.randn((batch_size, sequence_size, num_labels), requires_grad=True).to(device)
+
+
+batch_size = 1
+sequence_size = 3
+num_labels = 5
+mask = torch.ByteTensor([[1, 1, 1]]).to(device) # (batch_size. sequence_size)
+labels = torch.LongTensor([[0, 2, 3]]).to(device)  # (batch_size, sequence_size)
+hidden = torch.randn((batch_size, sequence_size, num_labels), requires_grad=True).to(device)
+
+
 crf = CRF(num_labels)
-a = crf.forward(hidden, labels, mask)
-b = crf.viterbi_decode(hidden, mask)
-print(a)
+a,b = crf.forward(hidden, labels, mask)
+# b = crf.viterbi_decode(hidden, mask)
+print(a,b)
 print(b)
 
 import argparse
@@ -30,7 +40,7 @@ import onnx
 model = crf
 x = (hidden, labels, mask)
 # get results from model
-model_out = model(hidden, labels, mask)
+model_out,lbls_out = model(hidden, labels, mask)
 print(a)
 # logits_tgt, logits_clsf = model(enc,enc_self_attn_mask)
 torch.onnx.export(model,               # model being run
@@ -71,6 +81,17 @@ ort_outs= ort_session.run(None, ort_inputs)
 
 
 # compare ONNX Runtime and PyTorch results
-np.testing.assert_allclose(to_numpy(model_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+np.testing.assert_allclose(to_numpy(lbls_out), ort_outs[1], rtol=1e-03, atol=1e-05)
 
 print("Exported model has been tested with ONNXRuntime, and the result looks good!")
+
+
+# convert model
+import onnxsim
+from onnxsim import simplify
+model_simp, check = simplify(onnx_model)
+onnx.save(model_simp, args.onnx_dir+"CRF_sim.onnx")
+
+assert check, "Simplified ONNX model could not be validated"
+
+print("Simplified model has been validated, and the result looks good!")
