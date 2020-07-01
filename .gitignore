@@ -57,4 +57,5 @@ ChatBot/save/chatbot_model/core_reduced/2-2_500/4000_checkpoint.tar
 NER/NER_data/archived/*
 NER/save/*
 NER/main_LSTM/save/*
-
+NER/main_BERT/chinese_L-12_H-768_A-12/*
+NER/main_BERT/experiments/base_model/*.tar
