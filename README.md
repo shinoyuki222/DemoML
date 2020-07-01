@@ -29,7 +29,8 @@ Issues include but *not* limited to:
 #### Hidden Markov Model (HMM)
 
 #### Conditional Random Field (CRF)
-
+- Demo: [CRF](https://github.com/shinoyuki222/DemoML/tree/master/CRF)
+- Understanding:
 
 #### Topics not included but can easily be found from other repos:
 - Linear Regression
