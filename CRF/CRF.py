@@ -26,12 +26,9 @@ class CRF(nn.Module):
         self.num_labels = num_labels
         device = "cuda" if CRF.CUDA else "cpu"
 
-        # 遷移行列の設定
-        # 遷移行列のフォーマット (遷移元, 遷移先)
         # transition matrix setting
         # transition matrix format (source, destination)
         self.trans_matrix = FloatTensor(num_labels, num_labels).to(device)
-        # 先頭と末尾への遷移行列の設定
         # transition matrix of start and end settings
         self.start_trans = FloatTensor(num_labels).to(device)
         self.end_trans = FloatTensor(num_labels).to(device)
@@ -71,28 +68,24 @@ class CRF(nn.Module):
         """
 
         batch_size, seq_len, _ = h.size()
-        # 各系列の系列長を用意
         # prepare the sequence lengths in each sequence
         seq_lens = mask.long().sum(dim=1)
-        # バッチ内において，スタート地点から先頭のラベルに対してのスコアを用意
+        # seq_lens = torch.ones(sizeas)
         # In mini batch, prepare the score
         # from the start sequence to the first label
         score = [self.start_trans.data + h[:, 0]]
         path = []
 
         for t in range(1, seq_len):
-            # 1つ前の系列のスコアを抽出
             # extract the score of previous sequence
             # (batch_size, num_labels, 1)
             previous_score = score[t - 1].view(batch_size, -1, 1)
 
-            # 系列の隠れ層のスコアを抽出
             # extract the score of hidden matrix of sequence
             # (batch_size, 1, num_labels)
             h_t = h[:, t].view(batch_size, 1, -1)
 
-            # t-1の系列のラベルからtの系列のラベルまでの遷移におけるスコアを抽出
-            # self.trans_matrixは系列Aから系列Bまでの遷移のスコアを持っている
+
             # extract the score in transition
             # from label of t-1 sequence to label of sequence of t
             # self.trans_matrix has the score of the transition
@@ -100,7 +93,6 @@ class CRF(nn.Module):
             # (batch_size, num_labels, num_labels)
             score_t = previous_score + self.trans_matrix + h_t
 
-            # 導出したスコアのうち，各系列の最大値と最大値をとり得る位置を保持
             # keep the maximum value
             # and point where maximum value of each sequence
             # (batch_size, num_labels)
@@ -108,13 +100,20 @@ class CRF(nn.Module):
             score.append(best_score)
             path.append(best_path)
 
-        # バッチ内のラベルを推定
         # predict labels of mini batch
-        best_paths = [
-            self._viterbi_compute_best_path(i, seq_lens, score, path)
-            for i in range(batch_size)
-        ]
-        return best_paths
+        best_paths = []
+        print(h.size(1))
+        for i in range(batch_size):
+            best_path = self._viterbi_compute_best_path(i, seq_lens, score, path)
+            pad_path =best_path + [0]* (h.size(1) - len(best_path))
+            best_paths.append(pad_path)
+
+        # best_paths = [
+        #     self._viterbi_compute_best_path(i, seq_lens, score, path)
+        #     for i in range(batch_size)
+        # ]
+
+        return torch.LongTensor(best_paths)
 
     def _viterbi_compute_best_path(
         self,
@@ -135,12 +134,10 @@ class CRF(nn.Module):
         """
 
         seq_end_idx = seq_lens[batch_idx] - 1
-        # 系列の一番後ろのラベルを抽出
         # extract label of end sequence
         _, best_last_label = (score[seq_end_idx][batch_idx] + self.end_trans).max(0)
         best_labels = [int(best_last_label)]
 
-        # viterbiアルゴリズムにより，ラベルを後ろから推定
         # predict labels from back using viterbi algorithm
         for p in reversed(path[:seq_end_idx]):
             best_last_label = p[batch_idx][best_labels[0]]
@@ -159,42 +156,32 @@ class CRF(nn.Module):
         """
 
         batch_size, seq_len, _ = h.size()
-        # 計算できるよう，遷移行列のサイズを変更
         # (num_labels, num_labels) -> (1, num_labels, num_labels)
         trans = self.trans_matrix.view(1, self.num_labels, self.num_labels)
-        # 先頭から各ラベルへのスコアと各ラベルの1番目のスコアを足し合わせる
         # add the score from beginning to each label
         # and the first score of each label
         score = self.start_trans.view(1, -1) + h[:, 0]
-        # ミニバッチ中の単語数だけ処理を行う
         # iterate through processing for the number of words in the mini batch
         for t in range(1, seq_len):
             # (batch_size, self.num_labels, 1)
-            before_score = score.view(batch_size, self.num_labels, 1)
-            # 各系列の系列のt番目のマスクを用意
             # prepare t-th mask of sequences in each sequence
             # (batch_size, 1)
             mask_t = mask[:, t].view(batch_size, 1).type(torch.BoolTensor)
             mask_t = mask_t.cuda() if CRF.CUDA else mask_t
 
-            # 各系列におけるt番目の系列ラベルの遷移確率
             # prepare the transition probability of the t-th sequence label
             # in each sequence
             # (batch_size, 1, num_labels)
             h_t = h[:, t].view(batch_size, 1, self.num_labels)
-            # 各系列でのt番目のスコアを導出
             # calculate t-th scores in each sequence
             # (batch_size, num_labels)
             score_t = self.logsumexp(before_score + h_t + trans, 1)
-            # スコアの更新
             # update scores
             # (batch_size, num_labels)
             score = score_t * mask_t + score * (~mask_t)
 
-        # 末尾のスコアを足し合わせる
         # add the end score of each label
         score += self.end_trans.view(1, -1)
-        # ミニバッチ中のデータ全体の対数尤度を返す
         # return the log likely food of all data in mini batch
         return self.logsumexp(score, 1)
 
@@ -212,7 +199,6 @@ class CRF(nn.Module):
         """
 
         batch_size, seq_len, _ = h.size()
-        # 系列のスタート位置のベクトルを抽出
         # extract first vector of sequences in mini batch
         score = self.start_trans[y[:, 0]]
 
@@ -222,32 +208,25 @@ class CRF(nn.Module):
         for t in range(seq_len - 1):
             mask_t = mask[:, t].cuda() if CRF.CUDA else mask[:, t]
             mask_t1 = mask[:, t + 1] if CRF.CUDA else mask[:, t + 1]
-            # t+1番目のラベルのスコアを抽出
             # extract the score of t+1 label
             # (batch_size)
             h_t = torch.cat([h[b, t, y[b, t]] for b in range(batch_size)])
-            # t番目のラベルからt+1番目のラベルへの遷移スコアを抽出
             # extract the transition score from t-th label to t+1 label
             # (batch_size)
             trans_t = torch.cat([trans[s[t], s[t + 1]] for s in y])
-            # 足し合わせる
             # add the score of t+1 and the transition score
             # (batch_size)
             score += h_t * mask_t + trans_t * mask_t1
 
-        # バッチ内の各系列の最後尾のラベル番号を抽出する
         # extract end label number of each sequence in mini batch
         # (batch_size)
         last_mask_index = mask.long().sum(1) - 1
         last_labels = y.gather(1, last_mask_index.unsqueeze(-1))
-        # hの形を元に戻す
         # restore the shape of h
         h = h.unsqueeze(-1).view(batch_size, seq_len, self.num_labels)
-
-        # バッチ内の最大長の系列のスコアを足し合わせる
+        
         # Add the score of the sequences of the maximum length in mini batch
         score += h[:, -1].gather(1, last_labels).squeeze(1) * mask[:, -1]
-        # 各系列の最後尾のタグからEOSまでのスコアを足し合わせる
         # Add the scores from the last tag of each sequence to EOS
         score += self.end_trans[last_labels].view(batch_size)
 
