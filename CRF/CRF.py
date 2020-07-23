@@ -12,7 +12,6 @@ class CRF(nn.Module):
         self, num_labels: int, pad_idx: Optional[int] = None, use_gpu: bool = True
     ) -> None:
         """
-
         :param num_labels: number of labels
         :param pad_idxL padding index. default None
         :return None
