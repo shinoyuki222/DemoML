@@ -1,0 +1,3 @@
+[submodule "DemoNLP"]
+	path = DemoNLP
+	url = https://github.com/shinoyuki222/DemoNLP
