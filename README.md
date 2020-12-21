@@ -32,13 +32,17 @@ Issues include but *not* limited to:
 - Demo: [CRF](https://github.com/shinoyuki222/DemoML/tree/master/CRF)
 - Understanding:
 
+#### GBDT
+- Demo: [GBDT](https://github.com/shinoyuki222/DemoML/tree/master/GBDT)
+- Understanding: TBD
+
 #### Topics not included but can easily be found from other repos:
 - Linear Regression
 - Logisctic Regression
 - Support Vector Machine (SVM)
 - Principal Components Analysis (PCA)
 - Decision Tree and Random Forest (Bagging)
-- Adaboost, Xgboost, GBDT (Boosting)
+- Adaboost, Xgboost (Boosting)
 
 
 ### Deep Learning
