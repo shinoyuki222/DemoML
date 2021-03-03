@@ -21,7 +21,6 @@ VAE_NLG/data/vae_nlg.pt
 VAE_NLG/data/poem
 Transformer/transformer_pre.py
 Transformer/Transformer(Greedy_decoder)-Torch.py
-NLU/data/w2v
 NLU/data/train/tags.txt
 NLU/data/train/sentences.txt
 NLU/data/corpus_no_slots/car-unknown-def.txt
