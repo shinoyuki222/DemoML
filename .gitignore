@@ -37,7 +37,7 @@ NLU/main_Transformer/model_pre.py
 *.zip
 NLU/data/cmn_CHN-word/*.txt
 NLU/data/data*
-NLU/main_Transformer/data*
+NLU/main_Transformer/data_*/*
 NLU/main_Transformer/archive/*
 Transformer/transformer_encoder.onnx
 ChatBot/chatbot_data/make_data.py
