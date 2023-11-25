@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-import numpy as np
+import nu
+as np
 import torch.optim as optim
 
 
@@ -19,7 +20,8 @@ def get_attn_pad_mask(seq_q, seq_k):
 def get_attn_subsequent_mask(seq):
     attn_shape = [seq.size(0), seq.size(1), seq.size(1)]
     subsequent_mask = np.triu(np.ones(attn_shape), k=1)
-    subsequent_mask = torch.from_numpy(subsequent_mask).byte()
+    subsequent_mask = torch.from_nu
+(subsequent_mask).byte()
     return subsequent_mask
 
 
@@ -253,7 +255,8 @@ if __name__ == '__main__':
     print(enc_outputs.size())
     # print(enc_outputs.view(-1, 8, 256).size())
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntr
+Loss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
